@@ -1,0 +1,162 @@
+.etf-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 1.5rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-group label,
+.filter-group .filter-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.filter-group input[type="number"] {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  min-width: 120px;
+}
+
+/* Hide native number input spinners for cleaner look */
+.filter-group input[type="number"]::-webkit-outer-spin-button,
+.filter-group input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.filter-group input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.filter-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filter-group input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* react-select overrides - ensure dropdown matches filter height */
+.filter-group .react-select__control {
+  min-height: 38px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.filter-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-export:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.filter-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filter-export-dropdown {
+  position: relative;
+}
+
+.filter-export .export-chevron {
+  margin-left: 0.2rem;
+  opacity: 0.7;
+}
+
+.filter-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.filter-export-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filter-export-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-submit {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filter-submit:hover {
+  background: #5558e3;
+}
+
+.filter-reset {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-reset:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

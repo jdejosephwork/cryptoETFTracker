@@ -1,0 +1,197 @@
+.profile-wrap {
+  position: relative;
+}
+
+.profile-trigger {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-trigger:hover {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.profile-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 280px;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.profile-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-tabs button {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.profile-tabs button:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.profile-tabs button.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+
+.profile-panel {
+  padding: 1rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.profile-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+}
+
+.profile-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.profile-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.profile-list li:last-child {
+  border-bottom: none;
+}
+
+.profile-ticker {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+.profile-name {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.profile-clear-btn,
+.profile-login-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.profile-login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-login-btn {
+  margin-top: 0.75rem;
+  width: 100%;
+  display: block;
+}
+
+.profile-login-apple {
+  margin-top: 0.5rem;
+}
+
+.profile-email {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.profile-synced {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.profile-logout-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.profile-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.profile-empty code {
+  padding: 0.15rem 0.35rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}

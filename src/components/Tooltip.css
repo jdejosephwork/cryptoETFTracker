@@ -1,0 +1,30 @@
+.tooltip-trigger {
+  display: inline-flex;
+  width: 100%;
+}
+
+.tooltip-portal {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: normal;
+  max-width: 240px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  z-index: 99999;
+  pointer-events: none;
+  animation: tooltip-fade-in 0.15s ease;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

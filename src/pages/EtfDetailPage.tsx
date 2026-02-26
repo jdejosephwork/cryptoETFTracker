@@ -33,7 +33,30 @@ export function EtfDetailPage() {
     return (
       <div className="etf-detail-page">
         <Link to="/" className="etf-detail-back">← Back to ETFs</Link>
-        <div className="etf-detail-loading">Loading {symbol}…</div>
+        <div className="etf-detail-skeleton">
+          <div className="skeleton-header">
+            <div className="skeleton-title" />
+            <div className="skeleton-price" />
+          </div>
+          <div className="etf-detail-grid">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="etf-detail-card etf-detail-skeleton-card">
+                <div className="skeleton-line" style={{ width: '40%' }} />
+                <div className="skeleton-line" style={{ width: '80%' }} />
+                <div className="skeleton-line" style={{ width: '60%' }} />
+                <div className="skeleton-line" style={{ width: '70%' }} />
+              </div>
+            ))}
+            <div className="etf-detail-card etf-detail-card-wide etf-detail-skeleton-card">
+              <div className="skeleton-line" style={{ width: '30%' }} />
+              <div className="skeleton-bars">
+                {[65, 45, 80, 30, 55].map((w, j) => (
+                  <div key={j} className="skeleton-bar" style={{ width: `${w}%` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

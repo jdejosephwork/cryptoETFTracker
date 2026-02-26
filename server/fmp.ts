@@ -18,17 +18,30 @@ function getApiKey(): string {
   return key || ''
 }
 
+const FMP_TIMEOUT_MS = 12_000 // 12s per call to avoid Railway/Vercel proxy 502
+
 async function fetchFMP<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const apiKey = getApiKey()
   const url = new URL(path, FMP_BASE)
   if (apiKey) url.searchParams.set('apikey', apiKey)
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
-  const res = await fetch(url.toString())
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`FMP API error: ${res.status} ${res.statusText}${text ? ` - ${text.slice(0, 200)}` : ''}`)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), FMP_TIMEOUT_MS)
+  try {
+    const res = await fetch(url.toString(), { signal: controller.signal })
+    clearTimeout(timeout)
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`FMP API error: ${res.status} ${res.statusText}${text ? ` - ${text.slice(0, 200)}` : ''}`)
+    }
+    return res.json()
+  } catch (e) {
+    clearTimeout(timeout)
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('FMP request timeout')
+    }
+    throw e
   }
-  return res.json()
 }
 
 const KNOWN_CRYPTO_ETFS = [

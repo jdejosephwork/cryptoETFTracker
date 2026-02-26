@@ -94,18 +94,19 @@ app.get('/api/etf/:symbol', async (req: Request, res: Response) => {
     const data: EtfDetailData = { symbol, quote: quote ?? null, holdings: holdings || [] }
 
     if (extended) {
-      const [info, countries, sectors, chart, news] = await Promise.all([
+      // Use allSettled so one slow/failing FMP call doesn't 502 the whole request
+      const [infoRes, countriesRes, sectorsRes, chartRes, newsRes] = await Promise.allSettled([
         getEtfInfo(symbol),
         getEtfCountryWeightings(symbol),
         getEtfSectorWeightings(symbol),
-        getHistoricalPrice(symbol, 90),
+        getHistoricalPrice(symbol, 60),
         getEtfNews(symbol, 5)
       ])
-      data.info = info ?? null
-      data.countryWeightings = countries ?? []
-      data.sectorWeightings = sectors ?? []
-      data.chart = chart ?? []
-      data.news = news ?? []
+      data.info = infoRes.status === 'fulfilled' ? (infoRes.value ?? null) : null
+      data.countryWeightings = countriesRes.status === 'fulfilled' ? (countriesRes.value ?? []) : []
+      data.sectorWeightings = sectorsRes.status === 'fulfilled' ? (sectorsRes.value ?? []) : []
+      data.chart = chartRes.status === 'fulfilled' ? (chartRes.value ?? []) : []
+      data.news = newsRes.status === 'fulfilled' ? (newsRes.value ?? []) : []
     }
 
     setCachedEtfDetail(symbol, data, extended)

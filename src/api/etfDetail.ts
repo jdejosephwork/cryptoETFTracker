@@ -111,6 +111,12 @@ export async function fetchEtfDetail(symbol: string): Promise<EtfDetailResponse>
   return fetchEtfDetailInner(symbol, false) as Promise<EtfDetailResponse>
 }
 
+/** Fetch extended detail; on 502/timeout, fallback to basic (quote+holdings) */
 export async function fetchEtfDetailExtended(symbol: string): Promise<EtfDetailExtendedResponse> {
-  return fetchEtfDetailInner(symbol, true) as Promise<EtfDetailExtendedResponse>
+  try {
+    return (await fetchEtfDetailInner(symbol, true)) as EtfDetailExtendedResponse
+  } catch {
+    const basic = await fetchEtfDetailInner(symbol, false)
+    return { ...basic }
+  }
 }

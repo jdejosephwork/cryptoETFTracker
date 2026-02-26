@@ -121,3 +121,18 @@
   font-size: 0.85rem;
   color: var(--text-muted);
 }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .watchlist-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .watchlist-title {
+    font-size: 1.25rem;
+  }
+
+  .watchlist-desc {
+    margin-bottom: 1.5rem;
+  }
+}

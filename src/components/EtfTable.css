@@ -405,3 +405,59 @@
   border-radius: 8px;
   cursor: pointer;
 }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .etf-table-search {
+    padding: 0.75rem 1rem;
+  }
+
+  .search-bar-wrap {
+    max-width: none;
+  }
+
+  .etf-table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .etf-table-header h2 {
+    font-size: 1rem;
+  }
+
+  .etf-table-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .etf-table {
+    min-width: 700px;
+    font-size: 0.8rem;
+  }
+
+  .etf-table th,
+  .etf-table td {
+    padding: 0.75rem 0.75rem;
+  }
+
+  .etf-table .name {
+    max-width: 140px;
+  }
+
+  .etf-table .cusip {
+    font-size: 0.7rem;
+  }
+
+  .etf-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .pagination-rows,
+  .pagination-nav {
+    justify-content: center;
+  }
+}

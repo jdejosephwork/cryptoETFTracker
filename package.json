@@ -11,7 +11,8 @@
     "verify": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "cd server && npm install --omit=dev"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

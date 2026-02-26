@@ -1,0 +1,231 @@
+.etf-detail-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.etf-detail-back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.etf-detail-back:hover {
+  color: var(--accent);
+}
+
+.etf-detail-loading,
+.etf-detail-error {
+  color: var(--text-muted);
+  margin: 2rem 0;
+}
+
+.etf-detail-error {
+  color: #f87171;
+}
+
+.etf-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.etf-detail-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.etf-detail-symbol {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.etf-detail-price-block {
+  text-align: right;
+}
+
+.etf-detail-price {
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: block;
+}
+
+.etf-detail-change.positive {
+  color: #4ade80;
+}
+
+.etf-detail-change.negative {
+  color: #f87171;
+}
+
+.etf-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.etf-detail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.etf-detail-card-wide {
+  grid-column: 1 / -1;
+}
+
+.etf-detail-card h3 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.etf-detail-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+
+.etf-detail-dl dt {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.etf-detail-dl dd {
+  margin: 0;
+  text-align: right;
+}
+
+.etf-detail-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.etf-detail-bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.etf-detail-bar-label {
+  font-size: 0.9rem;
+}
+
+.etf-detail-bar-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.etf-detail-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.etf-detail-bar-pct {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.etf-detail-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  margin-bottom: 0.5rem;
+}
+
+.etf-detail-chart-bar {
+  flex: 1;
+  min-width: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: height 0.2s;
+}
+
+.etf-detail-chart-bar:hover {
+  background: var(--accent-muted);
+}
+
+.etf-detail-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.etf-detail-holdings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem 1.5rem;
+}
+
+.etf-detail-holdings li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.holding-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.holding-weight {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.etf-detail-news {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.etf-detail-news li {
+  margin-bottom: 0.75rem;
+}
+
+.etf-detail-news li:last-child {
+  margin-bottom: 0;
+}
+
+.etf-detail-news a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.etf-detail-news a:hover {
+  text-decoration: underline;
+}
+
+.etf-detail-news-date {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}

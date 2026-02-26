@@ -39,9 +39,49 @@ export interface EtfDetailResponse {
   holdings: EtfHolding[]
 }
 
-export async function fetchEtfDetail(symbol: string): Promise<EtfDetailResponse> {
+export interface EtfInfo {
+  symbol?: string
+  name?: string
+  expenseRatio?: number
+  aum?: number
+  [key: string]: unknown
+}
+
+export interface CountryWeighting {
+  country?: string
+  weightPercentage?: number
+}
+
+export interface SectorWeighting {
+  sector?: string
+  weightPercentage?: number
+}
+
+export interface ChartPoint {
+  date?: string
+  close?: number
+  volume?: number
+}
+
+export interface NewsItem {
+  title?: string
+  publishedDate?: string
+  url?: string
+  site?: string
+  text?: string
+}
+
+export interface EtfDetailExtendedResponse extends EtfDetailResponse {
+  info?: EtfInfo | null
+  countryWeightings?: CountryWeighting[]
+  sectorWeightings?: SectorWeighting[]
+  chart?: ChartPoint[]
+  news?: NewsItem[]
+}
+
+async function fetchEtfDetailInner(symbol: string, extended: boolean): Promise<EtfDetailResponse | EtfDetailExtendedResponse> {
   const base = getApiBase()
-  const url = `${base}/api/etf/${encodeURIComponent(symbol)}`
+  const url = `${base}/api/etf/${encodeURIComponent(symbol)}${extended ? '?extended=1' : ''}`
   let res: Response
   try {
     res = await fetch(url)
@@ -61,8 +101,16 @@ export async function fetchEtfDetail(symbol: string): Promise<EtfDetailResponse>
     throw new Error(`ETF detail failed: ${detail}`)
   }
   try {
-    return JSON.parse(text) as EtfDetailResponse
+    return JSON.parse(text) as EtfDetailResponse | EtfDetailExtendedResponse
   } catch {
     throw new Error(`Invalid response (expected JSON)`)
   }
+}
+
+export async function fetchEtfDetail(symbol: string): Promise<EtfDetailResponse> {
+  return fetchEtfDetailInner(symbol, false) as Promise<EtfDetailResponse>
+}
+
+export async function fetchEtfDetailExtended(symbol: string): Promise<EtfDetailExtendedResponse> {
+  return fetchEtfDetailInner(symbol, true) as Promise<EtfDetailExtendedResponse>
 }

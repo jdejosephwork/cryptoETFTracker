@@ -10,26 +10,44 @@ import express, { Request, Response } from 'express'
 import cors from 'cors'
 import cron from 'node-cron'
 import { runSync } from './sync'
-import { getEtfQuote, getEtfHoldings } from './fmp'
+import {
+  getEtfQuote,
+  getEtfHoldings,
+  getEtfInfo,
+  getEtfCountryWeightings,
+  getEtfSectorWeightings,
+  getEtfNews,
+  getHistoricalPrice
+} from './fmp'
 import type { CryptoEtfRow } from '../src/types/etf'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// In-memory cache for ETF detail (quote + holdings) to stay within FMP Starter 300 calls/min
+// In-memory cache for ETF detail to stay within FMP Starter 300 calls/min
 const ETF_DETAIL_CACHE_TTL_MS = 10 * 60 * 1000 // 10 min
-const etfDetailCache = new Map<
-  string,
-  { data: { symbol: string; quote: unknown; holdings: unknown[] }; expiry: number }
->()
+interface EtfDetailData {
+  symbol: string
+  quote: unknown
+  holdings: unknown[]
+  info?: unknown
+  countryWeightings?: unknown[]
+  sectorWeightings?: unknown[]
+  chart?: unknown[]
+  news?: unknown[]
+}
+const etfDetailCache = new Map<string, { data: EtfDetailData; expiry: number }>()
+const etfDetailExtendedCache = new Map<string, { data: EtfDetailData; expiry: number }>()
 
-function getCachedEtfDetail(symbol: string): { symbol: string; quote: unknown; holdings: unknown[] } | null {
-  const entry = etfDetailCache.get(symbol)
+function getCachedEtfDetail(symbol: string, extended: boolean): EtfDetailData | null {
+  const cache = extended ? etfDetailExtendedCache : etfDetailCache
+  const entry = cache.get(symbol)
   if (!entry || Date.now() > entry.expiry) return null
   return entry.data
 }
 
-function setCachedEtfDetail(symbol: string, data: { symbol: string; quote: unknown; holdings: unknown[] }): void {
-  etfDetailCache.set(symbol, { data, expiry: Date.now() + ETF_DETAIL_CACHE_TTL_MS })
+function setCachedEtfDetail(symbol: string, data: EtfDetailData, extended: boolean): void {
+  const cache = extended ? etfDetailExtendedCache : etfDetailCache
+  cache.set(symbol, { data, expiry: Date.now() + ETF_DETAIL_CACHE_TTL_MS })
 }
 const DATA_PATH = join(__dirname, 'data', 'etfs.json')
 const PORT = Number(process.env.PORT) || 3001
@@ -61,19 +79,36 @@ app.get('/api/etfs', (_req: Request, res: Response) => {
   res.json(data)
 })
 
-// GET /api/etf/:symbol - ETF detail (quote + holdings) for modal; 10min cache to respect FMP rate limits
+// GET /api/etf/:symbol - ETF detail; ?extended=1 adds info, sectors, countries, chart, news (10min cache)
 app.get('/api/etf/:symbol', async (req: Request, res: Response) => {
   const symbol = (req.params.symbol || '').toUpperCase()
   if (!symbol) return res.status(400).json({ error: 'Symbol required' })
-  const cached = getCachedEtfDetail(symbol)
+  const extended = req.query.extended === '1'
+  const cached = getCachedEtfDetail(symbol, extended)
   if (cached) return res.json(cached)
   try {
     const [quote, holdings] = await Promise.all([
       getEtfQuote(symbol),
       getEtfHoldings(symbol)
     ])
-    const data = { symbol, quote, holdings: holdings || [] }
-    setCachedEtfDetail(symbol, data)
+    const data: EtfDetailData = { symbol, quote: quote ?? null, holdings: holdings || [] }
+
+    if (extended) {
+      const [info, countries, sectors, chart, news] = await Promise.all([
+        getEtfInfo(symbol),
+        getEtfCountryWeightings(symbol),
+        getEtfSectorWeightings(symbol),
+        getHistoricalPrice(symbol, 90),
+        getEtfNews(symbol, 5)
+      ])
+      data.info = info ?? null
+      data.countryWeightings = countries ?? []
+      data.sectorWeightings = sectors ?? []
+      data.chart = chart ?? []
+      data.news = news ?? []
+    }
+
+    setCachedEtfDetail(symbol, data, extended)
     res.json(data)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })

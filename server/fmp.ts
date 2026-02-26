@@ -146,6 +146,63 @@ export async function getEtfQuote(symbol: string): Promise<FMPQuote | null> {
   }
 }
 
+/** ETF sector weightings for detail page */
+export async function getEtfSectorWeightings(symbol: string): Promise<{ sector: string; weightPercentage?: number }[]> {
+  try {
+    const data = await fetchFMP<{ sector?: string; weightPercentage?: number }[] | { sectorWeightings?: unknown[] }>(
+      `/stable/etf/sector-weightings?symbol=${encodeURIComponent(symbol)}`
+    )
+    if (Array.isArray(data) && data.length > 0) return data
+    const sw = (data as { sectorWeightings?: { sector?: string; weightPercentage?: number }[] })?.sectorWeightings
+    return Array.isArray(sw) ? sw : []
+  } catch {
+    return []
+  }
+}
+
+/** Stock/news by symbol for ETF detail page */
+export interface FMPNewsItem {
+  title?: string
+  publishedDate?: string
+  url?: string
+  site?: string
+  text?: string
+}
+export async function getEtfNews(symbol: string, limit = 5): Promise<FMPNewsItem[]> {
+  try {
+    const data = await fetchFMP<FMPNewsItem[] | { data?: FMPNewsItem[] }>(
+      `/stable/news/stock?symbols=${encodeURIComponent(symbol)}&page=0&limit=${limit}`
+    )
+    const arr = Array.isArray(data) ? data : (data as { data?: FMPNewsItem[] })?.data ?? []
+    return arr
+  } catch {
+    return []
+  }
+}
+
+/** Historical price (light) for chart - last 3 months */
+export interface FMPHistoricalPoint {
+  date?: string
+  close?: number
+  volume?: number
+}
+export async function getHistoricalPrice(symbol: string, days = 90): Promise<FMPHistoricalPoint[]> {
+  try {
+    const to = new Date()
+    const from = new Date()
+    from.setDate(from.getDate() - days)
+    const fromStr = from.toISOString().slice(0, 10)
+    const toStr = to.toISOString().slice(0, 10)
+    const data = await fetchFMP<FMPHistoricalPoint[] | { data?: FMPHistoricalPoint[] }>(
+      `/stable/historical-price-eod/light?symbol=${encodeURIComponent(symbol)}&from=${fromStr}&to=${toStr}`
+    )
+    const arr = Array.isArray(data) ? data : (data as { data?: FMPHistoricalPoint[] })?.data ?? []
+    return arr.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+  } catch {
+    return []
+  }
+}
+
 export async function getCusipBySymbol(symbol: string): Promise<string | null> {
   try {
     const data = await fetchFMP<Array<{ symbol?: string; cusip?: string; isin?: string }> | { data?: Array<{ symbol?: string; cusip?: string; isin?: string }> }>('/stable/search-symbol', { query: symbol })

@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import type { CryptoEtfRow } from '../types/etf'
 import { EtfFilters, type EtfFiltersState } from './EtfFilters'
 import { SearchBar } from './SearchBar'
 import { Tooltip } from './Tooltip'
-import { EtfDetailModal } from './EtfDetailModal'
 import { useEtfContext } from '../context/EtfContext'
 import './EtfTable.css'
 
@@ -69,7 +69,6 @@ function applySearch(rows: CryptoEtfRow[], query: string): CryptoEtfRow[] {
 export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
   const { toggleWatchlist, toggleExportSelection, isInWatchlist, isInExportSelection, exportSelection, setRowsToExport } = useEtfContext()
   const [searchQuery, setSearchQuery] = useState('')
-  const [detailRow, setDetailRow] = useState<CryptoEtfRow | null>(null)
   const [sortKey, setSortKey] = useState<SortKey | null>('cryptoWeight')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [filters, setFilters] = useState<EtfFiltersState>({
@@ -241,24 +240,14 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
               paginatedRows.map((row) => (
                 <tr key={row.ticker}>
                   <td className="ticker">
-                    <button
-                      type="button"
-                      className="row-link"
-                      onClick={() => setDetailRow(row)}
-                      title="View details"
-                    >
+                    <Link to={`/etf/${row.ticker}`} className="row-link" title="View details">
                       {row.ticker}
-                    </button>
+                    </Link>
                   </td>
                   <td className="name">
-                    <button
-                      type="button"
-                      className="row-link"
-                      onClick={() => setDetailRow(row)}
-                      title="View details"
-                    >
+                    <Link to={`/etf/${row.ticker}`} className="row-link" title="View details">
                       {row.name}
-                    </button>
+                    </Link>
                   </td>
                   <td>{row.region}</td>
                   <td className="num">
@@ -359,9 +348,6 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
         </div>
       )}
 
-      {detailRow && (
-        <EtfDetailModal row={detailRow} onClose={() => setDetailRow(null)} />
-      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Select from 'react-select'
 import type { CryptoEtfRow } from '../types/etf'
+import { exportToCsv, exportToJson, exportToExcel } from '../lib/exportUtils'
 import './EtfFilters.css'
 
 export interface EtfFiltersState {
@@ -54,7 +55,7 @@ const selectStyles = {
   placeholder: (base: object) => ({ ...base, color: 'rgba(255, 255, 255, 0.4)' }),
 }
 
-export type ExportFormat = 'csv' | 'json'
+export type ExportFormat = 'csv' | 'json' | 'excel'
 
 interface EtfFiltersProps {
   rows: CryptoEtfRow[]
@@ -63,58 +64,6 @@ interface EtfFiltersProps {
   /** When non-empty, export only these rows (user selection). */
   exportSelection?: Set<string>
   onApply: (filters: EtfFiltersState) => void
-}
-
-function escapeCsvValue(val: unknown): string {
-  const s = String(val ?? '')
-  if (/[,"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
-}
-
-function downloadFile(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function exportToCsv(rows: CryptoEtfRow[]) {
-  const headers = ['Ticker', 'Name', 'Region', 'Crypto Weight %', 'BTC Held', 'Crypto Exposure', 'CUSIP', 'Digital Asset']
-  const lines = [
-    headers.join(','),
-    ...rows.map((r) =>
-      [
-        escapeCsvValue(r.ticker),
-        escapeCsvValue(r.name),
-        escapeCsvValue(r.region),
-        escapeCsvValue(r.cryptoWeight),
-        escapeCsvValue(r.btcHoldings ?? ''),
-        escapeCsvValue(r.cryptoExposure),
-        escapeCsvValue(r.cusip),
-        escapeCsvValue(r.digitalAssetIndicator ? 'Yes' : 'No')
-      ].join(',')
-    )
-  ]
-  const csv = lines.join('\r\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-  downloadFile(blob, `crypto-etf-holdings-${new Date().toISOString().slice(0, 10)}.csv`)
-}
-
-function exportToJson(rows: CryptoEtfRow[]) {
-  const data = rows.map((r) => ({
-    ticker: r.ticker,
-    name: r.name,
-    region: r.region,
-    cryptoWeight: r.cryptoWeight,
-    btcHoldings: r.btcHoldings,
-    cryptoExposure: r.cryptoExposure,
-    cusip: r.cusip,
-    digitalAssetIndicator: r.digitalAssetIndicator,
-  }))
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  downloadFile(blob, `crypto-etf-holdings-${new Date().toISOString().slice(0, 10)}.json`)
 }
 
 export function EtfFilters({ rows, exportRows, exportSelection, onApply }: EtfFiltersProps) {
@@ -167,7 +116,8 @@ export function EtfFilters({ rows, exportRows, exportSelection, onApply }: EtfFi
 
   const handleExport = (format: ExportFormat) => {
     if (format === 'csv') exportToCsv(rowsToExport)
-    else exportToJson(rowsToExport)
+    else if (format === 'json') exportToJson(rowsToExport)
+    else exportToExcel(rowsToExport)
     setExportMenuOpen(false)
   }
 
@@ -258,6 +208,7 @@ export function EtfFilters({ rows, exportRows, exportSelection, onApply }: EtfFi
             <div className="filter-export-menu">
               <button type="button" onClick={() => handleExport('csv')}>CSV</button>
               <button type="button" onClick={() => handleExport('json')}>JSON</button>
+              <button type="button" onClick={() => handleExport('excel')}>Excel</button>
             </div>
           )}
         </div>

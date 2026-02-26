@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { CryptoEtfRow } from '../types/etf'
 import { useEtfContext } from '../context/EtfContext'
 import { useAuth } from '../context/AuthContext'
+import { exportToCsv, exportToJson, exportToExcel } from '../lib/exportUtils'
 import './Profile.css'
 
 interface ProfileProps {
@@ -11,22 +13,49 @@ interface ProfileProps {
 export function Profile({ rows }: ProfileProps) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'watchlist' | 'export' | 'account'>('watchlist')
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [exportMenuRect, setExportMenuRect] = useState<DOMRect | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const { watchlist, exportSelection, getWatchlistRows, clearExportSelection } = useEtfContext()
+  const exportBtnRef = useRef<HTMLButtonElement>(null)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+  const { watchlist, exportSelection, rowsToExport, getWatchlistRows, clearExportSelection } = useEtfContext()
   const { user, loading: authLoading, signInWithGoogle, signInWithApple, signOut, isConfigured } = useAuth()
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const inDropdown = dropdownRef.current?.contains(target)
+      const inExportMenu = exportMenuRef.current?.contains(target)
+      if (!inDropdown && !inExportMenu) {
         setOpen(false)
+        setExportMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useLayoutEffect(() => {
+    if (exportMenuOpen && exportBtnRef.current) {
+      setExportMenuRect(exportBtnRef.current.getBoundingClientRect())
+    } else {
+      setExportMenuRect(null)
+    }
+  }, [exportMenuOpen])
+
+  function handleExport(format: 'csv' | 'json' | 'excel') {
+    if (format === 'csv') exportToCsv(rowsForExport)
+    else if (format === 'json') exportToJson(rowsForExport)
+    else exportToExcel(rowsForExport)
+    setExportMenuOpen(false)
+  }
+
   const watchlistRows = getWatchlistRows(rows)
   const hasExportSelection = exportSelection.size > 0
+  const rowsForExport =
+    hasExportSelection
+      ? rowsToExport.filter((r) => exportSelection.has(r.ticker.toUpperCase()))
+      : rowsToExport
 
   return (
     <div className="profile-wrap" ref={dropdownRef}>
@@ -60,7 +89,7 @@ export function Profile({ rows }: ProfileProps) {
             <button
               type="button"
               className={activeTab === 'export' ? 'active' : ''}
-              onClick={() => setActiveTab('export')}
+              onClick={() => { setActiveTab('export'); setExportMenuOpen(false); }}
             >
               Export ({exportSelection.size})
             </button>
@@ -91,15 +120,66 @@ export function Profile({ rows }: ProfileProps) {
           )}
 
           {activeTab === 'export' && (
-            <div className="profile-panel">
-              {!hasExportSelection ? (
-                <p className="profile-empty">No rows selected for export. Click the + icon on any row to add it to your export selection.</p>
+            <div className="profile-panel profile-export-panel">
+              {rowsForExport.length === 0 ? (
+                <div className="profile-export-empty">
+                  <span className="profile-export-empty-icon" aria-hidden>↓</span>
+                  <p className="profile-empty">
+                    {hasExportSelection
+                      ? 'No matching rows in current view. Adjust filters or clear selection.'
+                      : 'No data to export yet. Load ETFs first.'}
+                  </p>
+                </div>
               ) : (
                 <>
-                  <p className="profile-hint">{exportSelection.size} row(s) selected. Use the Export dropdown to download.</p>
-                  <button type="button" className="profile-clear-btn" onClick={clearExportSelection}>
-                    Clear selection
-                  </button>
+                  <div className="profile-export-header">
+                    <span className="profile-export-count">{rowsForExport.length}</span>
+                    <span className="profile-export-label">row{rowsForExport.length !== 1 ? 's' : ''} ready to export</span>
+                  </div>
+                  <div className="profile-export-download">
+                    <button
+                      ref={exportBtnRef}
+                      type="button"
+                      className="profile-export-btn"
+                      onClick={() => setExportMenuOpen((o) => !o)}
+                      aria-expanded={exportMenuOpen}
+                      aria-haspopup="true"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Download
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="profile-export-chevron">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                    {exportMenuOpen && exportMenuRect &&
+                      createPortal(
+                        <div
+                          ref={exportMenuRef}
+                          className="profile-export-menu profile-export-menu-popout"
+                          role="menu"
+                          style={{
+                            position: 'fixed',
+                            top: exportMenuRect.bottom + 4,
+                            left: exportMenuRect.left,
+                            minWidth: exportMenuRect.width,
+                          }}
+                        >
+                          <button type="button" role="menuitem" onClick={() => handleExport('csv')}>CSV</button>
+                          <button type="button" role="menuitem" onClick={() => handleExport('json')}>JSON</button>
+                          <button type="button" role="menuitem" onClick={() => handleExport('excel')}>Excel</button>
+                        </div>,
+                        document.body
+                      )}
+                  </div>
+                  {hasExportSelection && (
+                    <button type="button" className="profile-clear-btn profile-export-clear" onClick={clearExportSelection}>
+                      Clear selection
+                    </button>
+                  )}
                 </>
               )}
             </div>

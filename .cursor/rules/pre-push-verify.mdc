@@ -1,0 +1,16 @@
+---
+description: Always run verify before pushing
+alwaysApply: true
+---
+
+# Pre-Push Verification
+
+Before pushing changes, the build must pass. This project has:
+
+1. **Husky pre-push hook** – Runs `npm run verify` automatically on `git push`. If the build fails, the push is blocked.
+2. **Manual check** – You can run `npm run verify` anytime to confirm TypeScript and Vite build succeed.
+
+When helping with commits or pushes:
+- Do not skip or bypass the pre-push hook
+- If the user reports build errors before push, fix them before pushing
+- The verify script runs `npm run build` (tsc + vite build)

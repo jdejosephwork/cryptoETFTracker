@@ -31,6 +31,6 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       backendReachable: railway.reachable,
       fmpKeySet: railway.health?.fmpKeySet ?? false,
     },
-    endpoints: ['/api/etfs', '/api/etf/:symbol', '/api/etf/:symbol?extended=1', '/api/health'],
+    endpoints: ['/api/etfs', '/api/etf/:symbol (Vercel serverless, Railway fallback)', '/api/health'],
   })
 }

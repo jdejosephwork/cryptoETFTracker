@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { CryptoEtfRow } from '../types/etf'
 import { fetchEtfDetail } from '../api/etfDetail'
 import './EtfDetailModal.css'
@@ -13,7 +13,7 @@ export function EtfDetailModal({ row, onClose }: EtfDetailModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadDetail = useCallback(() => {
     if (!row) return
     setDetail(null)
     setError(null)
@@ -22,7 +22,12 @@ export function EtfDetailModal({ row, onClose }: EtfDetailModalProps) {
       .then(setDetail)
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false))
-  }, [row?.ticker])
+  }, [row])
+
+  useEffect(() => {
+    if (!row) return
+    loadDetail()
+  }, [row, loadDetail])
 
   if (!row) return null
 
@@ -45,7 +50,12 @@ export function EtfDetailModal({ row, onClose }: EtfDetailModalProps) {
         )}
 
         {error && (
-          <div className="modal-error">{error}</div>
+          <div className="modal-error">
+            <p>{error}</p>
+            <button type="button" className="modal-retry" onClick={loadDetail}>
+              Retry
+            </button>
+          </div>
         )}
 
         {!loading && !error && (

@@ -36,7 +36,28 @@ export interface EtfDetailResponse {
 }
 
 export async function fetchEtfDetail(symbol: string): Promise<EtfDetailResponse> {
-  const res = await fetch(`${API_BASE}/api/etf/${encodeURIComponent(symbol)}`)
-  if (!res.ok) throw new Error('Failed to load ETF details')
-  return res.json()
+  const url = `${API_BASE}/api/etf/${encodeURIComponent(symbol)}`
+  let res: Response
+  try {
+    res = await fetch(url)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Network error'
+    throw new Error(`Could not reach API: ${msg}`)
+  }
+  const text = await res.text()
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`
+    try {
+      const err = JSON.parse(text) as { error?: string }
+      if (err?.error) detail = err.error
+    } catch {
+      if (text?.slice(0, 100)) detail = `${res.status}: ${text.slice(0, 100)}`
+    }
+    throw new Error(`ETF detail failed: ${detail}`)
+  }
+  try {
+    return JSON.parse(text) as EtfDetailResponse
+  } catch {
+    throw new Error(`Invalid response (expected JSON)`)
+  }
 }

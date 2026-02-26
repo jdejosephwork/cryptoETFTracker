@@ -13,7 +13,7 @@
       "destination": "https://cryptoetftracker-production.up.railway.app/api/health"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

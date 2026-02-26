@@ -71,6 +71,30 @@
 
 .modal-error {
   color: #e57373;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal-error p {
+  margin: 0;
+}
+
+.modal-retry {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-retry:hover {
+  filter: brightness(1.1);
 }
 
 .modal-body {

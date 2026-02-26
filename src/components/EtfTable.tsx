@@ -80,6 +80,7 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
   })
   const [pageSize, setPageSize] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
+  const [filtersExpanded, setFiltersExpanded] = useState(true)
 
   const searchFilteredRows = useMemo(
     () => applySearch(rows, searchQuery),
@@ -153,12 +154,27 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
           suggestions={searchFilteredRows.slice(0, 8).map((r) => ({ ticker: r.ticker, name: r.name }))}
         />
       </div>
-      <EtfFilters
-        rows={rows}
-        exportRows={sortedRows}
-        exportSelection={exportSelection}
-        onApply={setFilters}
-      />
+      <div className="etf-filters-wrap">
+        <button
+          type="button"
+          className="etf-filters-toggle"
+          onClick={() => setFiltersExpanded((e) => !e)}
+          aria-expanded={filtersExpanded}
+        >
+          Filters
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={filtersExpanded ? 'chevron-open' : ''}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {filtersExpanded && (
+          <EtfFilters
+            rows={rows}
+            exportRows={sortedRows}
+            exportSelection={exportSelection}
+            onApply={setFilters}
+          />
+        )}
+      </div>
       <div className="etf-table-header">
         <h2>Crypto ETF Holdings</h2>
         <button

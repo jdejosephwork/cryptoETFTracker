@@ -78,6 +78,11 @@ interface CachedPayload {
 const app = express()
 app.use(cors())
 
+// Root - return 200 so platform health checks probing / succeed
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({ ok: true, message: 'Crypto ETF Tracker API' })
+})
+
 // Stripe webhook needs raw body (must be before express.json())
 app.post(
   '/api/stripe-webhook',

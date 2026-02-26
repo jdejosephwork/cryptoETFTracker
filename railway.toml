@@ -4,3 +4,5 @@ buildCommand = "npm install && cd server && npm install --omit=dev"
 
 [deploy]
 startCommand = "cd server && npx tsx index.ts"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300

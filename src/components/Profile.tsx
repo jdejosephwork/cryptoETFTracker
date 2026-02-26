@@ -54,7 +54,7 @@ export function Profile({ rows }: ProfileProps) {
   const hasExportSelection = exportSelection.size > 0
   const rowsForExport =
     hasExportSelection
-      ? rowsToExport.filter((r) => exportSelection.has(r.ticker.toUpperCase()))
+      ? rowsToExport.filter((r: CryptoEtfRow) => exportSelection.has(r.ticker.toUpperCase()))
       : rowsToExport
 
   return (

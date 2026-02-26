@@ -17,6 +17,9 @@ const EXPORT_SEL_KEY = 'crypto-etf-export-selection'
 interface EtfContextValue {
   watchlist: Set<string>
   exportSelection: Set<string>
+  /** Filtered/sorted rows for export (set by EtfTable). Used by header Export. */
+  rowsToExport: CryptoEtfRow[]
+  setRowsToExport: (rows: CryptoEtfRow[]) => void
   toggleWatchlist: (ticker: string) => void
   toggleExportSelection: (ticker: string) => void
   isInWatchlist: (ticker: string) => boolean
@@ -53,6 +56,7 @@ export function EtfProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [watchlist, setWatchlist] = useState<Set<string>>(() => loadSetFromStorage(WATCHLIST_KEY))
   const [exportSelection, setExportSelection] = useState<Set<string>>(() => loadSetFromStorage(EXPORT_SEL_KEY))
+  const [rowsToExport, setRowsToExport] = useState<CryptoEtfRow[]>([])
 
   // Load from Supabase when user logs in
   useEffect(() => {
@@ -132,6 +136,8 @@ export function EtfProvider({ children }: { children: ReactNode }) {
   const value: EtfContextValue = {
     watchlist,
     exportSelection,
+    rowsToExport,
+    setRowsToExport,
     toggleWatchlist,
     toggleExportSelection,
     isInWatchlist,

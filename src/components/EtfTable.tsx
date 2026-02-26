@@ -67,7 +67,7 @@ function applySearch(rows: CryptoEtfRow[], query: string): CryptoEtfRow[] {
 }
 
 export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
-  const { toggleWatchlist, toggleExportSelection, isInWatchlist, isInExportSelection, exportSelection } = useEtfContext()
+  const { toggleWatchlist, toggleExportSelection, isInWatchlist, isInExportSelection, exportSelection, setRowsToExport } = useEtfContext()
   const [searchQuery, setSearchQuery] = useState('')
   const [detailRow, setDetailRow] = useState<CryptoEtfRow | null>(null)
   const [sortKey, setSortKey] = useState<SortKey | null>('cryptoWeight')
@@ -120,6 +120,10 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
     setCurrentPage((p) => (p > totalPages ? 1 : Math.min(p, totalPages)))
   }, [totalPages])
 
+  useEffect(() => {
+    setRowsToExport(sortedRows)
+  }, [sortedRows, setRowsToExport])
+
   const handleSort = (key: SortKey | null) => {
     if (!key || key === 'actions') return
     setSortKey((prev) => {
@@ -143,7 +147,11 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
         </div>
       )}
       <div className="etf-table-search">
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          suggestions={searchFilteredRows.slice(0, 8).map((r) => ({ ticker: r.ticker, name: r.name }))}
+        />
       </div>
       <EtfFilters
         rows={rows}

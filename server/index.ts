@@ -131,10 +131,21 @@ app.post('/api/sync', async (req: Request, res: Response) => {
   }
 })
 
-// Health check
+// Health check - includes FMP key status (never exposes the key)
 app.get('/api/health', (_req: Request, res: Response) => {
   const { count, syncedAt } = getCachedEtfs()
-  res.json({ ok: true, etfCount: count, lastSync: syncedAt })
+  const fmpKeySet = !!(process.env.FMP_API_KEY || '').trim()
+  res.json({
+    ok: true,
+    etfCount: count,
+    lastSync: syncedAt,
+    fmpKeySet,
+    endpoints: {
+      etfs: '/api/etfs',
+      etfDetail: '/api/etf/:symbol',
+      etfDetailExtended: '/api/etf/:symbol?extended=1',
+    },
+  })
 })
 
 function runInitialSyncInBackground(): void {

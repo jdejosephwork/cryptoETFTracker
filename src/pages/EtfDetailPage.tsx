@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { fetchEtfDetailExtended } from '../api/etfDetail'
+import { fetchEtfDetail, fetchEtfDetailExtended } from '../api/etfDetail'
 import type { EtfDetailExtendedResponse } from '../api/etfDetail'
 import './EtfDetailPage.css'
 
@@ -8,17 +8,35 @@ export function EtfDetailPage() {
   const { symbol } = useParams<{ symbol: string }>()
   const [data, setData] = useState<EtfDetailExtendedResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [extendedLoading, setExtendedLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!symbol) return
     setLoading(true)
     setError(null)
-    fetchEtfDetailExtended(symbol)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false))
+    try {
+      const basic = await fetchEtfDetail(symbol)
+      setData(basic)
+      setExtendedLoading(true)
+      try {
+        const ext = await fetchEtfDetailExtended(symbol)
+        setData(ext)
+      } catch {
+        // Keep basic data; extended is optional
+      } finally {
+        setExtendedLoading(false)
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
   }, [symbol])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   if (!symbol) {
     return (
@@ -65,7 +83,15 @@ export function EtfDetailPage() {
     return (
       <div className="etf-detail-page">
         <Link to="/" className="etf-detail-back">← Back to ETFs</Link>
-        <p className="etf-detail-error">{error || 'Failed to load'}</p>
+        <div className="etf-detail-error-box">
+          <p className="etf-detail-error">{error || 'Failed to load'}</p>
+          <a href="/api/diagnostic" target="_blank" rel="noopener noreferrer" className="etf-detail-diagnostic-link">
+            Check API status
+          </a>
+          <button type="button" className="etf-detail-retry" onClick={load}>
+            Retry
+          </button>
+        </div>
       </div>
     )
   }
@@ -198,7 +224,7 @@ export function EtfDetailPage() {
         {/* Price chart */}
         {chart.length > 0 && (
           <section className="etf-detail-card etf-detail-card-wide">
-            <h3>Price (90 days)</h3>
+            <h3>Price (60 days)</h3>
             <div className="etf-detail-chart">
               {chart.map((p, i) => {
                 const vals = chart.map((x) => x.close ?? 0).filter(Boolean)
@@ -260,6 +286,14 @@ export function EtfDetailPage() {
             </ul>
           </section>
         )}
+
+        {extendedLoading && (
+          <div className="etf-detail-loading-more">Loading sectors, chart, news…</div>
+        )}
+
+        <footer className="etf-detail-footer">
+          <p>Data: FMP API (quote, holdings, sectors, countries, chart, news). Basic data loads first; extended may take a few seconds.</p>
+        </footer>
       </div>
     </div>
   )

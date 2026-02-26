@@ -18,7 +18,7 @@ function getApiKey(): string {
   return key || ''
 }
 
-const FMP_TIMEOUT_MS = 12_000 // 12s per call to avoid Railway/Vercel proxy 502
+const FMP_TIMEOUT_MS = 8_000 // 8s per call to avoid Railway/Vercel proxy 502
 
 async function fetchFMP<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const apiKey = getApiKey()

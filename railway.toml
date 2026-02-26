@@ -1,0 +1,6 @@
+# Railway deployment config - run from repo root so server can import from ../src
+[build]
+buildCommand = "npm install && cd server && npm install --omit=dev"
+
+[deploy]
+startCommand = "cd server && npx tsx index.ts"

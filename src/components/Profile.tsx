@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { CryptoEtfRow } from '../types/etf'
 import { useEtfContext } from '../context/EtfContext'
 import { useAuth } from '../context/AuthContext'
+import { useSubscription } from '../context/SubscriptionContext'
 import { exportToCsv, exportToJson, exportToExcel } from '../lib/exportUtils'
 import './Profile.css'
 
@@ -19,7 +20,9 @@ export function Profile({ rows }: ProfileProps) {
   const exportBtnRef = useRef<HTMLButtonElement>(null)
   const exportMenuRef = useRef<HTMLDivElement>(null)
   const { watchlist, exportSelection, rowsToExport, getWatchlistRows, clearExportSelection } = useEtfContext()
-  const { user, loading: authLoading, signInWithGoogle, signInWithApple, signOut, isConfigured } = useAuth()
+  const { user, session, loading: authLoading, signInWithGoogle, signInWithApple, signOut, isConfigured } = useAuth()
+  const { isPro, loading: subLoading, canExport, exportLimit } = useSubscription()
+  const [upgradeLoading, setUpgradeLoading] = useState(false)
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -44,10 +47,40 @@ export function Profile({ rows }: ProfileProps) {
   }, [exportMenuOpen])
 
   function handleExport(format: 'csv' | 'json' | 'excel') {
+    if (!canExport(rowsForExport.length)) {
+      setExportMenuOpen(false)
+      return
+    }
     if (format === 'csv') exportToCsv(rowsForExport)
     else if (format === 'json') exportToJson(rowsForExport)
     else exportToExcel(rowsForExport)
     setExportMenuOpen(false)
+  }
+
+  async function handleUpgrade() {
+    if (!session?.access_token) return
+    setUpgradeLoading(true)
+    try {
+      const base = window.location.origin
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          successUrl: `${base}/?upgraded=1`,
+          cancelUrl: base,
+        }),
+      })
+      const data = (await res.json()) as { url?: string; error?: string }
+      if (data.url) window.location.href = data.url
+      else console.error(data.error)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setUpgradeLoading(false)
+    }
   }
 
   const watchlistRows = getWatchlistRows(rows)
@@ -135,6 +168,9 @@ export function Profile({ rows }: ProfileProps) {
                   <div className="profile-export-header">
                     <span className="profile-export-count">{rowsForExport.length}</span>
                     <span className="profile-export-label">row{rowsForExport.length !== 1 ? 's' : ''} ready to export</span>
+                    {!canExport(rowsForExport.length) && (
+                      <span className="profile-export-limit">(Pro required for &gt;{exportLimit})</span>
+                    )}
                   </div>
                   <div className="profile-export-download">
                     <button
@@ -142,8 +178,10 @@ export function Profile({ rows }: ProfileProps) {
                       type="button"
                       className="profile-export-btn"
                       onClick={() => setExportMenuOpen((o) => !o)}
+                      disabled={!canExport(rowsForExport.length)}
                       aria-expanded={exportMenuOpen}
                       aria-haspopup="true"
+                      title={!canExport(rowsForExport.length) ? `Upgrade to Pro to export more than ${exportLimit} rows` : undefined}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -191,6 +229,20 @@ export function Profile({ rows }: ProfileProps) {
                 <>
                   <p className="profile-email">{user.email}</p>
                   <p className="profile-synced">Your watchlist syncs across devices.</p>
+                  {!isPro && (
+                    <div className="profile-upgrade-block">
+                      <p className="profile-upgrade-text">Free: 5 watchlist, 10 export rows. Upgrade for unlimited.</p>
+                      <button
+                        type="button"
+                        className="profile-upgrade-btn"
+                        onClick={handleUpgrade}
+                        disabled={upgradeLoading || subLoading}
+                      >
+                        {upgradeLoading ? 'Redirecting…' : 'Upgrade to Pro'}
+                      </button>
+                    </div>
+                  )}
+                  {isPro && <p className="profile-pro-badge">Pro</p>}
                   <button type="button" className="profile-logout-btn" onClick={signOut}>
                     Sign out
                   </button>

@@ -67,8 +67,6 @@ export function EtfDetailModal({ row, onClose }: EtfDetailModalProps) {
                 <dd>{row.cryptoWeight > 0 ? `${row.cryptoWeight}%` : '—'}</dd>
                 <dt>Crypto Exposure</dt>
                 <dd>{row.cryptoExposure || '—'}</dd>
-                <dt>BTC Held</dt>
-                <dd>{row.btcHoldings != null ? row.btcHoldings.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}</dd>
                 <dt>CUSIP</dt>
                 <dd>{row.cusip || '—'}</dd>
                 <dt>Region</dt>

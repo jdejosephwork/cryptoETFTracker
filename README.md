@@ -34,7 +34,27 @@ Track crypto weight exposure across exchange-traded funds (ETFs). Built with Rea
 
    Get a key at [financialmodelingprep.com](https://financialmodelingprep.com/register).
 
-3. **Run the app**
+3. **Run locally (with ETF detail)**
+
+   ETF detail (quote, holdings, sectors, chart, news) needs the backend server.
+
+   **Option A – One command (runs both):**
+   ```bash
+   npm run dev:all
+   ```
+
+   **Option B – Two terminals:**
+   ```bash
+   # Terminal 1 – backend (FMP data)
+   npm run dev:server
+
+   # Terminal 2 – frontend
+   npm run dev
+   ```
+
+   Add `FMP_API_KEY` to `server/.env` (copy from `server/.env.example`) so the server can fetch ETF data from FMP.
+
+4. **Run frontend only** (ETF list from backend or fallback; ETF detail won't load)
 
    ```bash
    npm run dev

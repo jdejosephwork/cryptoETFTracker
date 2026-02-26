@@ -2,7 +2,137 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchEtfDetail, fetchEtfDetailExtended } from '../api/etfDetail'
 import type { EtfDetailExtendedResponse } from '../api/etfDetail'
+import { BROKER_AFFILIATES } from '../data/brokerAffiliates'
 import './EtfDetailPage.css'
+
+type ChartPoint = { date?: string; close?: number; price?: number }
+
+/** Parse weight % - handles number, "97.49%" string, or decimal 0.65 */
+function toPercent(v: unknown): number {
+  if (v == null) return 0
+  const n = Number(v)
+  if (!Number.isNaN(n)) return n > 0 && n <= 1 ? n * 100 : n
+  if (typeof v === 'string') {
+    const stripped = v.replace(/%/g, '').trim()
+    const p = Number(stripped)
+    return Number.isNaN(p) ? 0 : p > 0 && p <= 1 ? p * 100 : p
+  }
+  return 0
+}
+
+function getPrice(x: ChartPoint): number {
+  return x.close ?? (x as { price?: number }).price ?? 0
+}
+
+function PriceLineChart({ chart, currentPrice }: { chart: ChartPoint[]; currentPrice?: number }) {
+  const [hovered, setHovered] = useState<{ date: string; price: number; x: number; y: number } | null>(null)
+  const chartWidth = 600
+  const chartHeight = 180
+  const padding = { top: 12, right: 12, bottom: 24, left: 48 }
+  const innerW = chartWidth - padding.left - padding.right
+  const innerH = chartHeight - padding.top - padding.bottom
+
+  const valid = chart.filter((p) => getPrice(p) > 0)
+  const min = valid.length ? Math.min(...valid.map(getPrice)) : 0
+  const max = valid.length ? Math.max(...valid.map(getPrice)) : 0
+  const range = max - min || 1
+  const n = chart.length || 1
+  const stepX = n > 1 ? innerW / (n - 1) : innerW
+
+  const points = chart.map((p, i) => {
+    const price = getPrice(p)
+    const x = padding.left + i * stepX
+    const y = padding.top + innerH - (price > 0 ? ((price - min) / range) * innerH : 0)
+    return { ...p, price, x, y }
+  })
+
+  const validPoints = points.filter((p) => p.price > 0)
+  const linePath = validPoints
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ')
+
+  const areaPath = validPoints.length
+    ? `${linePath} L ${validPoints[validPoints.length - 1].x} ${padding.top + innerH} L ${validPoints[0].x} ${padding.top + innerH} Z`
+    : ''
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    // Map pixel position to viewBox X (SVG may be scaled)
+    const viewX = (mouseX / rect.width) * chartWidth
+    const idx = Math.round((viewX - padding.left) / stepX)
+    const clamped = Math.max(0, Math.min(n - 1, idx))
+    const pt = points[clamped]
+    if (pt && pt.price > 0) {
+      setHovered({
+        date: pt.date ?? '',
+        price: pt.price,
+        x: pt.x,
+        y: pt.y
+      })
+    } else {
+      setHovered(null)
+    }
+  }
+
+  const handleMouseLeave = () => setHovered(null)
+
+  const closes = valid.map(getPrice)
+  const subtitle = currentPrice != null && closes.length
+    ? `Current: $${currentPrice.toFixed(2)} • Range: $${Math.min(...closes).toFixed(2)} – $${Math.max(...closes).toFixed(2)}`
+    : null
+
+  return (
+    <section className="etf-detail-card etf-detail-card-chart">
+      <h3>Price (60 days)</h3>
+      {subtitle && <p className="etf-detail-chart-subtitle">{subtitle}</p>}
+      <div className="etf-detail-chart-wrap">
+        <svg
+          className="etf-detail-line-chart"
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <defs>
+            <linearGradient id="etf-line-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {/* Area fill under line */}
+          {areaPath && <path d={areaPath} fill="url(#etf-line-gradient)" />}
+          {/* Line */}
+          {linePath && <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+          {/* Hover dot */}
+          {hovered && (
+            <g>
+              <circle cx={hovered.x} cy={hovered.y} r="6" fill="var(--accent)" opacity="0.9" />
+              <circle cx={hovered.x} cy={hovered.y} r="10" fill="transparent" />
+            </g>
+          )}
+        </svg>
+        {hovered && (
+          <div
+            className="etf-detail-chart-tooltip"
+            style={{
+              left: `${(hovered.x / chartWidth) * 100}%`,
+              top: `${((hovered.y - 28) / chartHeight) * 100}%`,
+              transform: 'translate(-50%, -100%)'
+            }}
+          >
+            <span className="etf-detail-tooltip-date">{hovered.date}</span>
+            <span className="etf-detail-tooltip-price">${hovered.price.toFixed(2)}</span>
+          </div>
+        )}
+      </div>
+      <div className="etf-detail-chart-labels">
+        <span>{chart[0]?.date ?? ''}</span>
+        <span>{chart[chart.length - 1]?.date ?? ''}</span>
+      </div>
+    </section>
+  )
+}
 
 export function EtfDetailPage() {
   const { symbol } = useParams<{ symbol: string }>()
@@ -115,6 +245,11 @@ export function EtfDetailPage() {
         <div>
           <h1 className="etf-detail-title">{displayName}</h1>
           <span className="etf-detail-symbol">{symbol}</span>
+          {data.sponsoredBy && (
+            <span className="etf-detail-sponsored-badge">
+              {data.sponsoredBadge || 'Sponsored'} · {data.sponsoredBy}
+            </span>
+          )}
         </div>
         {q?.price != null && (
           <div className="etf-detail-price-block">
@@ -128,11 +263,35 @@ export function EtfDetailPage() {
         )}
       </header>
 
+      <section className="etf-detail-invest">
+        <h3>Open an account to invest</h3>
+        <div className="etf-detail-invest-brokers">
+          {BROKER_AFFILIATES.map((broker) => (
+            <a
+              key={broker.name}
+              href={broker.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="etf-detail-invest-btn"
+            >
+              {broker.name}
+            </a>
+          ))}
+        </div>
+        <p className="etf-detail-invest-hint">Broker links may be affiliate links.</p>
+      </section>
+
       <div className="etf-detail-grid">
         {/* Market data */}
         <section className="etf-detail-card">
           <h3>Market Data</h3>
           <dl className="etf-detail-dl">
+            <dt>Crypto Weight</dt>
+            <dd>{data.cryptoWeight != null && data.cryptoWeight > 0 ? `${data.cryptoWeight}%` : '—'}</dd>
+            <dt>Exposure</dt>
+            <dd>{data.cryptoExposure || '—'}</dd>
+            <dt>CUSIP</dt>
+            <dd>{data.cusip || '—'}</dd>
             <dt>Price</dt>
             <dd>{q?.price != null ? `$${q.price.toFixed(2)}` : '—'}</dd>
             <dt>Day Change</dt>
@@ -179,23 +338,36 @@ export function EtfDetailPage() {
           </section>
         )}
 
+        {/* Price chart - always shown below Market Data / Fund Info */}
+        {chart.length > 0 ? (
+          <PriceLineChart chart={chart} currentPrice={q?.price} />
+        ) : (
+          <section className="etf-detail-card etf-detail-card-wide etf-detail-card-chart">
+            <h3>Price (60 days)</h3>
+            <p className="etf-detail-chart-subtitle">Chart data not available for this ETF.</p>
+          </section>
+        )}
+
         {/* Sector weightings */}
         {sectors.length > 0 && (
           <section className="etf-detail-card etf-detail-card-wide">
             <h3>Sector Allocation</h3>
             <div className="etf-detail-bars">
-              {sectors.slice(0, 10).map((s, i) => (
-                <div key={i} className="etf-detail-bar-row">
-                  <span className="etf-detail-bar-label">{s.sector || '—'}</span>
-                  <div className="etf-detail-bar-track">
-                    <div
-                      className="etf-detail-bar-fill"
-                      style={{ width: `${Math.min(100, s.weightPercentage ?? 0)}%` }}
-                    />
+              {sectors.slice(0, 10).map((s, i) => {
+                const pct = toPercent(s.weightPercentage)
+                return (
+                  <div key={i} className="etf-detail-bar-row">
+                    <span className="etf-detail-bar-label">{s.sector || '—'}</span>
+                    <div className="etf-detail-bar-track">
+                      <div
+                        className="etf-detail-bar-fill"
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    <span className="etf-detail-bar-pct">{pct.toFixed(1)}%</span>
                   </div>
-                  <span className="etf-detail-bar-pct">{(s.weightPercentage ?? 0).toFixed(1)}%</span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </section>
         )}
@@ -205,46 +377,21 @@ export function EtfDetailPage() {
           <section className="etf-detail-card etf-detail-card-wide">
             <h3>Country Allocation</h3>
             <div className="etf-detail-bars">
-              {countries.slice(0, 10).map((c, i) => (
-                <div key={i} className="etf-detail-bar-row">
-                  <span className="etf-detail-bar-label">{c.country || '—'}</span>
-                  <div className="etf-detail-bar-track">
-                    <div
-                      className="etf-detail-bar-fill"
-                      style={{ width: `${Math.min(100, c.weightPercentage ?? 0)}%` }}
-                    />
-                  </div>
-                  <span className="etf-detail-bar-pct">{(c.weightPercentage ?? 0).toFixed(1)}%</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Price chart */}
-        {chart.length > 0 && (
-          <section className="etf-detail-card etf-detail-card-wide">
-            <h3>Price (60 days)</h3>
-            <div className="etf-detail-chart">
-              {chart.map((p, i) => {
-                const vals = chart.map((x) => x.close ?? 0).filter(Boolean)
-                const min = Math.min(...vals)
-                const max = Math.max(...vals)
-                const range = max - min || 1
-                const h = ((p.close ?? 0) - min) / range * 100
+              {countries.slice(0, 10).map((c, i) => {
+                const pct = toPercent(c.weightPercentage)
                 return (
-                  <div
-                    key={i}
-                    className="etf-detail-chart-bar"
-                    style={{ height: `${h}%` }}
-                    title={`${p.date}: $${(p.close ?? 0).toFixed(2)}`}
-                  />
+                  <div key={i} className="etf-detail-bar-row">
+                    <span className="etf-detail-bar-label">{c.country || '—'}</span>
+                    <div className="etf-detail-bar-track">
+                      <div
+                        className="etf-detail-bar-fill"
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    <span className="etf-detail-bar-pct">{pct.toFixed(1)}%</span>
+                  </div>
                 )
               })}
-            </div>
-            <div className="etf-detail-chart-labels">
-              <span>{chart[0]?.date ?? ''}</span>
-              <span>{chart[chart.length - 1]?.date ?? ''}</span>
             </div>
           </section>
         )}
@@ -258,7 +405,7 @@ export function EtfDetailPage() {
                 <li key={i}>
                   <span className="holding-name">{h.name || h.asset || '—'}</span>
                   {h.weightPercentage != null && (
-                    <span className="holding-weight">{h.weightPercentage.toFixed(2)}%</span>
+                    <span className="holding-weight">{Number(h.weightPercentage).toFixed(2)}%</span>
                   )}
                 </li>
               ))}

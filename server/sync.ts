@@ -1,7 +1,9 @@
 /**
  * Sync job: fetch ETF data from FMP + btcetfdata, merge, and save to data/etfs.json.
- * Run via: npx tsx sync.ts  or  POST /api/sync
+ * Prioritizes: crypto weight, exposure, CUSIP, digital asset indicator.
+ * Runs hourly via cron or: npx tsx sync.ts  or  POST /api/sync
  */
+import 'dotenv/config'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -17,16 +19,17 @@ import {
 import { getBtcEtfHoldings } from './btcetfdata'
 import { CRYPTO_ETF_KNOWLEDGE } from '../src/data/cryptoEtfKnowledge'
 import { CUSIP_OVERRIDES } from '../src/data/cusipOverrides'
+import { SPONSORED_ETFS } from '../src/data/sponsoredEtfs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, 'data')
 const OUTPUT_PATH = join(DATA_DIR, 'etfs.json')
 
-// FMP Starter: 300 calls/min. Each ETF = up to 4 parallel calls → ~800ms between ETFs to stay under limit
-const REQUEST_DELAY_MS = 800
+// FMP Starter: 300 calls/min. Throttle: delay between each ETF batch (4 parallel calls). 900ms ≈ 220/min.
+const REQUEST_DELAY_MS = 900
 const MAX_ETFS = 50
 
-function inferCryptoExposure(name: string): string {
+export function inferCryptoExposure(name: string): string {
   const n = (name || '').toLowerCase()
   const exposures: string[] = []
   if (n.includes('bitcoin') || n.includes('btc')) exposures.push('BTC')
@@ -41,14 +44,30 @@ function isCryptoHolding(name: string, symbol?: string): boolean {
   return CRYPTO_ASSET_INDICATORS.some((ind: string) => text.includes(ind))
 }
 
-function calcCryptoWeight(holdings: { name?: string; symbol?: string; weightPercentage?: number }[]): number {
+function calcCryptoWeight(holdings: { name?: string; symbol?: string; weightPercentage?: number; asset?: string }[]): number {
   return holdings
-    .filter((h) => isCryptoHolding(h.name ?? '', h.symbol))
+    .filter((h) => isCryptoHolding(h.name ?? h.asset ?? '', h.symbol))
     .reduce((sum, h) => sum + (h.weightPercentage ?? 0), 0)
+}
+
+/** Get crypto weight % for an ETF: from holdings, or knowledge fallback. Used by ETF detail API. */
+export function getCryptoWeightForSymbol(
+  symbol: string,
+  holdings: { name?: string; symbol?: string; asset?: string; weightPercentage?: number }[]
+): number {
+  const fromHoldings = calcCryptoWeight(holdings)
+  if (fromHoldings > 0) return Math.round(fromHoldings * 100) / 100
+  const knowledge = CRYPTO_ETF_KNOWLEDGE[symbol as keyof typeof CRYPTO_ETF_KNOWLEDGE]
+  return knowledge?.cryptoWeight ?? 0
 }
 
 function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
+}
+
+/** Treat '—' as missing so fallbacks (CUSIP_OVERRIDES, etc.) can apply */
+export function validCusip(c: string | undefined): string | null {
+  return c && c !== '—' ? c : null
 }
 
 async function getExternalCusipMap(): Promise<Record<string, string>> {
@@ -99,7 +118,8 @@ export async function runSync(): Promise<SyncPayload> {
         ])
         const knowledge = CRYPTO_ETF_KNOWLEDGE[symbol as keyof typeof CRYPTO_ETF_KNOWLEDGE]
         const fullName = info?.name || knowledge?.name || etf.name || symbol
-        const cusip = info?.cusip || knowledge?.cusip || cusipLookup || CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] || externalCusips[symbol] || '—'
+        const cusip = validCusip(info?.cusip) || validCusip(knowledge?.cusip) || cusipLookup || CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] || externalCusips[symbol] || '—'
+        const sponsored = SPONSORED_ETFS[symbol]
         results.push({
           ticker: symbol,
           name: fullName,
@@ -108,19 +128,20 @@ export async function runSync(): Promise<SyncPayload> {
           cryptoExposure: 'BTC',
           cusip,
           digitalAssetIndicator: true,
-          btcHoldings: Math.round(btcEntry.holdings * 100) / 100
+          ...(sponsored && { sponsoredBy: sponsored.sponsoredBy, sponsoredBadge: sponsored.badge })
         })
       } catch {
         const knowledge = CRYPTO_ETF_KNOWLEDGE[symbol as keyof typeof CRYPTO_ETF_KNOWLEDGE]
+        const sponsored = SPONSORED_ETFS[symbol]
         results.push({
           ticker: symbol,
           name: knowledge?.name ?? etf.name ?? symbol,
           region: knowledge?.region ?? 'United States',
           cryptoWeight: 99.5,
           cryptoExposure: 'BTC',
-          cusip: knowledge?.cusip ?? CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] ?? externalCusips[symbol] ?? '—',
+          cusip: validCusip(knowledge?.cusip) ?? CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] ?? externalCusips[symbol] ?? '—',
           digitalAssetIndicator: true,
-          btcHoldings: Math.round(btcEntry.holdings * 100) / 100
+          ...(sponsored && { sponsoredBy: sponsored.sponsoredBy, sponsoredBadge: sponsored.badge })
         })
       }
     } else {
@@ -144,7 +165,8 @@ export async function runSync(): Promise<SyncPayload> {
           /bitcoin|btc|crypto|eth|ethereum/i.test(etf.name ?? '')
         const fullName = info?.name || knowledge?.name || etf.name || symbol
         const cryptoExposure = knowledge?.cryptoExposure ?? inferCryptoExposure(fullName)
-        const cusip = info?.cusip || knowledge?.cusip || cusipLookup || CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] || externalCusips[symbol] || '—'
+        const cusip = validCusip(info?.cusip) || validCusip(knowledge?.cusip) || cusipLookup || CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] || externalCusips[symbol] || '—'
+        const sponsored = SPONSORED_ETFS[symbol]
         results.push({
           ticker: symbol,
           name: fullName,
@@ -152,19 +174,22 @@ export async function runSync(): Promise<SyncPayload> {
           cryptoWeight: Math.round(cryptoWeight * 100) / 100,
           cryptoExposure,
           cusip,
-          digitalAssetIndicator
+          digitalAssetIndicator,
+          ...(sponsored && { sponsoredBy: sponsored.sponsoredBy, sponsoredBadge: sponsored.badge })
         })
       } catch {
         const knowledge = CRYPTO_ETF_KNOWLEDGE[symbol as keyof typeof CRYPTO_ETF_KNOWLEDGE]
         const fullName = knowledge?.name ?? etf.name ?? symbol
+        const sponsored = SPONSORED_ETFS[symbol]
         results.push({
           ticker: symbol,
           name: fullName,
           region: knowledge?.region ?? 'United States',
           cryptoWeight: knowledge?.cryptoWeight ?? 0,
           cryptoExposure: knowledge?.cryptoExposure ?? inferCryptoExposure(fullName),
-          cusip: knowledge?.cusip ?? CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] ?? externalCusips[symbol] ?? '—',
-          digitalAssetIndicator: knowledge?.digitalAssetIndicator ?? /bitcoin|btc|crypto|eth|ethereum/i.test(etf.name ?? '')
+          cusip: validCusip(knowledge?.cusip) ?? CUSIP_OVERRIDES[symbol as keyof typeof CUSIP_OVERRIDES] ?? externalCusips[symbol] ?? '—',
+          digitalAssetIndicator: knowledge?.digitalAssetIndicator ?? /bitcoin|btc|crypto|eth|ethereum/i.test(etf.name ?? ''),
+          ...(sponsored && { sponsoredBy: sponsored.sponsoredBy, sponsoredBadge: sponsored.badge })
         })
       }
     }

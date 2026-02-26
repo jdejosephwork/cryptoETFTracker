@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import type { CryptoEtfRow } from '../types/etf'
 import { useAuth } from './AuthContext'
+import { useSubscription } from './SubscriptionContext'
 import {
   fetchWatchlist,
   fetchExportSelection,
@@ -16,6 +17,7 @@ const EXPORT_SEL_KEY = 'crypto-etf-export-selection'
 
 interface EtfContextValue {
   watchlist: Set<string>
+  watchlistLimitReached: boolean
   exportSelection: Set<string>
   /** Filtered/sorted rows for export (set by EtfTable). Used by header Export. */
   rowsToExport: CryptoEtfRow[]
@@ -54,6 +56,7 @@ function saveSetToStorage(key: string, set: Set<string>) {
 
 export function EtfProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
+  const { canAddWatchlist } = useSubscription()
   const [watchlist, setWatchlist] = useState<Set<string>>(() => loadSetFromStorage(WATCHLIST_KEY))
   const [exportSelection, setExportSelection] = useState<Set<string>>(() => loadSetFromStorage(EXPORT_SEL_KEY))
   const [rowsToExport, setRowsToExport] = useState<CryptoEtfRow[]>([])
@@ -85,8 +88,9 @@ export function EtfProvider({ children }: { children: ReactNode }) {
   const toggleWatchlist = useCallback((ticker: string) => {
     const upper = ticker.toUpperCase()
     setWatchlist((prev) => {
+      const adding = !prev.has(upper)
+      if (adding && !canAddWatchlist(prev.size)) return prev
       const next = new Set(prev)
-      const adding = !next.has(upper)
       if (adding) next.add(upper)
       else next.delete(upper)
       if (user?.id) {
@@ -95,7 +99,7 @@ export function EtfProvider({ children }: { children: ReactNode }) {
       }
       return next
     })
-  }, [user?.id])
+  }, [user?.id, canAddWatchlist])
 
   const toggleExportSelection = useCallback((ticker: string) => {
     const upper = ticker.toUpperCase()
@@ -118,6 +122,7 @@ export function EtfProvider({ children }: { children: ReactNode }) {
   }, [user?.id])
 
   const isInWatchlist = useCallback((ticker: string) => watchlist.has(ticker.toUpperCase()), [watchlist])
+  const watchlistLimitReached = !canAddWatchlist(watchlist.size)
   const isInExportSelection = useCallback((ticker: string) => exportSelection.has(ticker.toUpperCase()), [exportSelection])
 
   const getWatchlistRows = useCallback(
@@ -135,6 +140,7 @@ export function EtfProvider({ children }: { children: ReactNode }) {
 
   const value: EtfContextValue = {
     watchlist,
+    watchlistLimitReached,
     exportSelection,
     rowsToExport,
     setRowsToExport,

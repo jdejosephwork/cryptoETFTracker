@@ -59,6 +59,7 @@ export interface CryptoEtfRow {
   cryptoExposure: string
   cusip: string
   digitalAssetIndicator: boolean
-  /** BTC holdings count when from btcetfdata.com (spot Bitcoin ETFs) */
-  btcHoldings?: number
+  /** Sponsored placement - from sponsoredEtfs config */
+  sponsoredBy?: string
+  sponsoredBadge?: string
 }

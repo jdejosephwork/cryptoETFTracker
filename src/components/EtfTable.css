@@ -66,6 +66,25 @@
   color: #818cf8;
 }
 
+.etf-table .ticker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.etf-table-sponsored {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 4px;
+}
+
+.etf-table .action-btn.limit-reached:not(.active) {
+  opacity: 0.5;
+  cursor: help;
+}
+
 .etf-table .actions-cell {
   display: flex;
   align-items: center;

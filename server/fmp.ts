@@ -30,11 +30,15 @@ async function fetchFMP<T>(path: string, params: Record<string, string> = {}): P
   try {
     const res = await fetch(url.toString(), { signal: controller.signal })
     clearTimeout(timeout)
+    const text = await res.text()
     if (!res.ok) {
-      const text = await res.text()
       throw new Error(`FMP API error: ${res.status} ${res.statusText}${text ? ` - ${text.slice(0, 200)}` : ''}`)
     }
-    return res.json()
+    try {
+      return JSON.parse(text) as T
+    } catch {
+      throw new Error(`FMP returned invalid JSON: ${text.slice(0, 100)}`)
+    }
   } catch (e) {
     clearTimeout(timeout)
     if (e instanceof Error && e.name === 'AbortError') {
@@ -46,7 +50,8 @@ async function fetchFMP<T>(path: string, params: Record<string, string> = {}): P
 
 const KNOWN_CRYPTO_ETFS = [
   'IBIT', 'BITB', 'FBTC', 'ARKB', 'BRRR', 'BTCW', 'HODL', 'GBTC', 'BTC', 'BTCC',
-  'BITO', 'BITS', 'DEFI', 'BLOK', 'BITQ', 'CRYP', 'BTF', 'BTEK', 'DAPP', 'BLCN'
+  'BITO', 'BITS', 'DEFI', 'BLOK', 'BITQ', 'CRYP', 'BTF', 'BTEK', 'DAPP', 'BLCN',
+  'ETCG', 'ETHB', 'BCHG', 'GDLC', 'OBTC', 'SATO', 'BKCH', 'FINX', 'KOIN'
 ]
 const CRYPTO_KEYWORDS = ['bitcoin', 'btc', 'crypto', 'ethereum', 'eth', 'digital', 'blockchain']
 
@@ -90,37 +95,95 @@ export async function getEtfInfo(symbol: string): Promise<FMPEtfInfo | null> {
   return null
 }
 
+/** ETF holdings = constituents (what the ETF holds). Use /stable/etf/holdings.
+ *  etf-holder = institutional holders (who holds the ETF) - wrong for our use. */
 export async function getEtfHoldings(symbol: string): Promise<FMPEtfHolding[]> {
   try {
-    const data = await fetchFMP<unknown>(`/api/v3/etf-holder/${encodeURIComponent(symbol)}`)
-    if (!data || !Array.isArray(data)) {
-      const d = await fetchFMP<FMPEtfHolding[] | { holdings?: FMPEtfHolding[] }>(`/stable/etf/holdings?symbol=${encodeURIComponent(symbol)}`)
-      return Array.isArray(d) ? d : d?.holdings ?? []
+    const data = await fetchFMP<FMPEtfHolding[] | { holdings?: FMPEtfHolding[]; data?: FMPEtfHolding[] }>(
+      `/stable/etf/holdings?symbol=${encodeURIComponent(symbol)}`
+    )
+    const mapHolding = (h: FMPEtfHolding & Record<string, unknown>) => ({
+      asset: String(h.asset ?? h.title ?? h.name ?? ''),
+      name: String(h.name ?? h.title ?? h.asset ?? ''),
+      symbol: h.symbol,
+      weightPercentage: Number(h.weightPercentage ?? h.pctVal ?? h.weight ?? 0),
+    })
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(mapHolding)
     }
-    return (data as Record<string, unknown>[]).map((h) => ({
-      asset: String(h.asset ?? h.name ?? ''),
-      name: String(h.name ?? h.asset ?? ''),
-      symbol: h.symbol as string | undefined,
-      weightPercentage: Number(h.weightPercentage ?? h.weight ?? 0),
-    }))
-  } catch {
+    const holdings = (data as { holdings?: FMPEtfHolding[] })?.holdings ?? (data as { data?: FMPEtfHolding[] })?.data ?? []
+    return Array.isArray(holdings) ? holdings.map(mapHolding) : []
+  } catch (e) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`FMP holdings failed for ${symbol}:`, (e as Error).message)
+    }
     return []
   }
 }
 
-export async function getEtfCountryWeightings(symbol: string): Promise<FMPCountryWeighting[]> {
-  const endpoints = [
-    `/api/v4/etf-country-weightings?symbol=${encodeURIComponent(symbol)}`,
-    `/stable/etf/country-weightings?symbol=${encodeURIComponent(symbol)}`
+/** Parse percentage value: FMP stable API returns weightPercentage as "97.49%" (string with %). */
+function parsePercentValue(v: unknown): number {
+  if (v == null) return NaN
+  const n = Number(v)
+  if (!Number.isNaN(n)) return n
+  if (typeof v === 'string') {
+    const stripped = v.replace(/%/g, '').trim()
+    const parsed = Number(stripped)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  return NaN
+}
+
+/** Extract weight from FMP country object. Per FMP docs: country, weightPercentage (can be "97.49%" string). */
+function extractCountryWeight(raw: Record<string, unknown>): number {
+  const candidates = [
+    raw.weight,
+    raw.weightPercentage,
+    raw.weighting,
+    raw.allocation,
+    raw.value,
+    raw.percent,
+    raw.pct,
+    raw.countryWeight,
+    raw.weightingPercentage
   ]
-  for (const path of endpoints) {
-    try {
-      const data = await fetchFMP<FMPCountryWeighting[] | { countryWeightings?: FMPCountryWeighting[] }>(path)
-      if (Array.isArray(data) && data.length > 0) return data
-      const cw = (data as { countryWeightings?: FMPCountryWeighting[] })?.countryWeightings
-      if (Array.isArray(cw) && cw.length > 0) return cw
-    } catch {
-      continue
+  for (const v of candidates) {
+    const n = parsePercentValue(v)
+    if (!Number.isNaN(n) && n >= 0) {
+      if (n > 0 && n <= 1) return n * 100
+      return n
+    }
+  }
+  return 0
+}
+
+/** Normalize country weighting. FMP docs: country, weight (float %). OpenBB: country, weight. */
+function mapCountryWeighting(raw: Record<string, unknown>): FMPCountryWeighting {
+  return {
+    country: String(raw.country ?? raw.Country ?? raw.name ?? raw.region ?? ''),
+    weightPercentage: extractCountryWeight(raw)
+  }
+}
+
+/** Extract array from FMP response. FMP may return: [...], { countryWeightings: [...] }, { data: [...] } */
+function extractCountryArray(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data) && data.length > 0) return data as Record<string, unknown>[]
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>
+    const cw = obj.countryWeightings ?? obj.country_weightings ?? obj.data
+    if (Array.isArray(cw) && cw.length > 0) return cw as Record<string, unknown>[]
+  }
+  return []
+}
+
+export async function getEtfCountryWeightings(symbol: string): Promise<FMPCountryWeighting[]> {
+  try {
+    const data = await fetchFMP<unknown>('/stable/etf/country-weightings', { symbol })
+    const arr = extractCountryArray(data)
+    if (arr.length > 0) return arr.map(mapCountryWeighting).filter((c) => !!c.country)
+  } catch (e) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`Country weightings failed for ${symbol}:`, (e as Error).message)
     }
   }
   return []
@@ -147,27 +210,57 @@ export interface FMPQuote {
   timestamp?: number
 }
 
+/** ETF quote: try batch-etf-quotes (ETF-specific) then stable/quote (works for ETFs too). */
 export async function getEtfQuote(symbol: string): Promise<FMPQuote | null> {
-  try {
-    const data = await fetchFMP<FMPQuote[] | { data?: FMPQuote[] }>(
-      `/stable/quote?symbol=${encodeURIComponent(symbol)}`
-    )
-    const arr = Array.isArray(data) ? data : (data as { data?: FMPQuote[] })?.data ?? []
-    return arr.length > 0 ? arr[0] : null
-  } catch {
-    return null
+  const endpoints: string[] = [
+    `/stable/batch-etf-quotes?symbols=${encodeURIComponent(symbol)}`,
+    `/stable/quote?symbol=${encodeURIComponent(symbol)}`,
+  ]
+  for (const path of endpoints) {
+    try {
+      const data = await fetchFMP<FMPQuote[] | { data?: FMPQuote[] }>(path)
+      const arr = Array.isArray(data) ? data : (data as { data?: FMPQuote[] })?.data ?? []
+      if (arr.length > 0) return arr[0]
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`FMP quote ${path.split('?')[0]} failed for ${symbol}:`, (e as Error).message)
+      }
+      continue
+    }
+  }
+  return null
+}
+
+/** ETF sector weightings for detail page. FMP stable may return weightPercentage as "97.49%" string. */
+function mapSectorWeighting(raw: Record<string, unknown>): { sector: string; weightPercentage?: number } {
+  const candidates = [raw.weight, raw.weightPercentage, raw.weighting, raw.allocation, raw.value, raw.percent]
+  let weight = 0
+  for (const v of candidates) {
+    const n = parsePercentValue(v)
+    if (!Number.isNaN(n) && n >= 0) {
+      weight = n > 0 && n <= 1 ? n * 100 : n
+      break
+    }
+  }
+  return {
+    sector: String(raw.sector ?? raw.Sector ?? raw.name ?? ''),
+    weightPercentage: weight
   }
 }
 
-/** ETF sector weightings for detail page */
 export async function getEtfSectorWeightings(symbol: string): Promise<{ sector: string; weightPercentage?: number }[]> {
   try {
-    const data = await fetchFMP<{ sector?: string; weightPercentage?: number }[] | { sectorWeightings?: unknown[] }>(
+    const data = await fetchFMP<unknown>(
       `/stable/etf/sector-weightings?symbol=${encodeURIComponent(symbol)}`
     )
-    if (Array.isArray(data) && data.length > 0) return data
-    const sw = (data as { sectorWeightings?: { sector?: string; weightPercentage?: number }[] })?.sectorWeightings
-    return Array.isArray(sw) ? sw : []
+    let arr: Record<string, unknown>[] = []
+    if (Array.isArray(data) && data.length > 0) arr = data as Record<string, unknown>[]
+    else {
+      const sw = (data as { sectorWeightings?: unknown[] })?.sectorWeightings
+      if (Array.isArray(sw) && sw.length > 0) arr = sw as Record<string, unknown>[]
+    }
+    if (arr.length > 0) return arr.map(mapSectorWeighting).filter((s) => s.sector)
+    return []
   } catch {
     return []
   }
@@ -193,24 +286,51 @@ export async function getEtfNews(symbol: string, limit = 5): Promise<FMPNewsItem
   }
 }
 
-/** Historical price (light) for chart - last 3 months */
+/** Historical price for chart - last N days. FMP full has close; light may use price. */
 export interface FMPHistoricalPoint {
   date?: string
   close?: number
+  price?: number
+  adjClose?: number
   volume?: number
 }
+function normalizeChartPoint(p: FMPHistoricalPoint & Record<string, unknown>): FMPHistoricalPoint {
+  const closeVal = Number(p.close ?? p.Close ?? p.price ?? p.Price ?? p.adjClose ?? p.AdjClose ?? 0)
+  return {
+    ...p,
+    date: String(p.date ?? p.Date ?? ''),
+    close: closeVal,
+    volume: Number(p.volume ?? p.Volume ?? 0)
+  }
+}
 export async function getHistoricalPrice(symbol: string, days = 90): Promise<FMPHistoricalPoint[]> {
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  const fromStr = from.toISOString().slice(0, 10)
+  const toStr = to.toISOString().slice(0, 10)
+
+  // Prefer full endpoint - guaranteed close, open, high, low
+  const fullPath = `/stable/historical-price-eod/full?symbol=${encodeURIComponent(symbol)}&from=${fromStr}&to=${toStr}`
   try {
-    const to = new Date()
-    const from = new Date()
-    from.setDate(from.getDate() - days)
-    const fromStr = from.toISOString().slice(0, 10)
-    const toStr = to.toISOString().slice(0, 10)
+    const data = await fetchFMP<FMPHistoricalPoint[] | { data?: FMPHistoricalPoint[] }>(fullPath)
+    const arr = Array.isArray(data) ? data : (data as { data?: FMPHistoricalPoint[] })?.data ?? []
+    if (arr.length > 0) {
+      const normalized = arr.map((p) => normalizeChartPoint(p as FMPHistoricalPoint & Record<string, unknown>))
+      return normalized.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+    }
+  } catch {
+    // Fall through to light
+  }
+
+  // Fallback: light endpoint (may use "price" instead of "close")
+  try {
     const data = await fetchFMP<FMPHistoricalPoint[] | { data?: FMPHistoricalPoint[] }>(
       `/stable/historical-price-eod/light?symbol=${encodeURIComponent(symbol)}&from=${fromStr}&to=${toStr}`
     )
     const arr = Array.isArray(data) ? data : (data as { data?: FMPHistoricalPoint[] })?.data ?? []
-    return arr.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+    const normalized = arr.map((p) => normalizeChartPoint(p as FMPHistoricalPoint & Record<string, unknown>))
+    return normalized.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
   } catch {
     return []
   }

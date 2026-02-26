@@ -52,10 +52,9 @@ export function WatchlistPage() {
                 {row.name}
               </Link>
               <div className="watchlist-card-meta">
-                <span>Crypto: {row.cryptoWeight > 0 ? `${row.cryptoWeight}%` : '—'}</span>
-                {row.btcHoldings != null && (
-                  <span>BTC: {row.btcHoldings.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                )}
+                <span>Crypto: {row.cryptoWeight != null && row.cryptoWeight > 0 ? `${row.cryptoWeight}%` : '—'}</span>
+                <span>Exposure: {row.cryptoExposure ?? '—'}</span>
+                <span>CUSIP: {row.cusip ?? '—'}</span>
               </div>
             </div>
           ))}

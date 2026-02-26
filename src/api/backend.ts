@@ -15,7 +15,6 @@ export interface BackendEtfResponse {
     cryptoExposure: string
     cusip: string
     digitalAssetIndicator: boolean
-    btcHoldings?: number
   }>
   syncedAt: string | null
   count: number

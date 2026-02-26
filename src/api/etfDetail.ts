@@ -72,6 +72,11 @@ export interface NewsItem {
 }
 
 export interface EtfDetailExtendedResponse extends EtfDetailResponse {
+  cryptoWeight?: number
+  cryptoExposure?: string
+  cusip?: string
+  sponsoredBy?: string
+  sponsoredBadge?: string
   info?: EtfInfo | null
   countryWeightings?: CountryWeighting[]
   sectorWeightings?: SectorWeighting[]

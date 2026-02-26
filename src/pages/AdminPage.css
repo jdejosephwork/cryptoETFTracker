@@ -1,0 +1,163 @@
+.admin-page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  margin-bottom: 2rem;
+}
+
+.admin-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.admin-header p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+
+.admin-section {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.admin-health-actions {
+  margin-bottom: 1rem;
+}
+
+.admin-json {
+  margin: 0;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-hint {
+  margin: 0 0 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.admin-sync-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.admin-sync-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.admin-sync-form input {
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+.admin-sync-form input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.admin-sync-form button {
+  padding: 0.5rem 1.25rem;
+  background: rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 6px;
+  color: #93c5fd;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.admin-sync-form button:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.admin-sync-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-logs-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.admin-logs-empty {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+}
+
+.admin-log-entry {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.admin-log-entry.success {
+  border-left-color: #22c55e;
+}
+
+.admin-log-entry.error {
+  border-left-color: #ef4444;
+}
+
+.admin-log-ts {
+  display: inline-block;
+  margin-right: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.admin-log-action {
+  display: inline-block;
+  margin-right: 0.5rem;
+  padding: 0.15rem 0.4rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.admin-log-msg {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.admin-log-data {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}

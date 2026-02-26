@@ -17,7 +17,7 @@ function downloadFile(blob: Blob, filename: string) {
 }
 
 export function exportToCsv(rows: CryptoEtfRow[]) {
-  const headers = ['Ticker', 'Name', 'Region', 'Crypto Weight %', 'BTC Held', 'Crypto Exposure', 'CUSIP', 'Digital Asset']
+  const headers = ['Ticker', 'Name', 'Region', 'Crypto Weight %', 'Crypto Exposure', 'CUSIP', 'Digital Asset']
   const lines = [
     headers.join(','),
     ...rows.map((r) =>
@@ -26,7 +26,6 @@ export function exportToCsv(rows: CryptoEtfRow[]) {
         escapeCsvValue(r.name),
         escapeCsvValue(r.region),
         escapeCsvValue(r.cryptoWeight),
-        escapeCsvValue(r.btcHoldings ?? ''),
         escapeCsvValue(r.cryptoExposure),
         escapeCsvValue(r.cusip),
         escapeCsvValue(r.digitalAssetIndicator ? 'Yes' : 'No')
@@ -44,7 +43,6 @@ export function exportToJson(rows: CryptoEtfRow[]) {
     name: r.name,
     region: r.region,
     cryptoWeight: r.cryptoWeight,
-    btcHoldings: r.btcHoldings,
     cryptoExposure: r.cryptoExposure,
     cusip: r.cusip,
     digitalAssetIndicator: r.digitalAssetIndicator,
@@ -59,7 +57,6 @@ export function exportToExcel(rows: CryptoEtfRow[]) {
     Name: r.name,
     Region: r.region,
     'Crypto Weight %': r.cryptoWeight,
-    'BTC Held': r.btcHoldings ?? '',
     'Crypto Exposure': r.cryptoExposure,
     CUSIP: r.cusip,
     'Digital Asset': r.digitalAssetIndicator ? 'Yes' : 'No',

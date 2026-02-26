@@ -313,6 +313,64 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.profile-upgrade-block {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+}
+
+.profile-upgrade-text {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.profile-upgrade-btn {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.profile-upgrade-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.profile-upgrade-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-pro-badge {
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.75rem;
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+}
+
+.profile-export-limit {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.profile-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .profile-logout-btn {
   padding: 0.5rem 1rem;
   font-size: 0.85rem;

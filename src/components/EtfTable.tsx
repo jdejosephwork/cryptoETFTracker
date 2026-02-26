@@ -9,12 +9,11 @@ import './EtfTable.css'
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50] as const
 
-const COLUMN_CONFIG: { key: keyof CryptoEtfRow | 'btcHoldings' | 'actions'; label: string; tooltip: string; className?: string }[] = [
+const COLUMN_CONFIG: { key: keyof CryptoEtfRow | 'actions'; label: string; tooltip: string; className?: string }[] = [
   { key: 'ticker', label: 'Ticker', tooltip: 'Stock exchange symbol for the ETF' },
   { key: 'name', label: 'Name', tooltip: 'Full official name of the fund' },
   { key: 'region', label: 'Region / Country', tooltip: 'Primary country or region where the ETF allocates assets' },
   { key: 'cryptoWeight', label: 'Crypto Weight %', tooltip: "Percentage of the ETF's holdings exposed to crypto assets (Bitcoin, Ethereum, etc.)", className: 'num' },
-  { key: 'btcHoldings', label: 'BTC Held', tooltip: 'Number of Bitcoin held (spot BTC ETFs from btcetfdata.com)' },
   { key: 'cryptoExposure', label: 'Crypto Exposure', tooltip: 'Which cryptocurrencies or digital assets the ETF holds (e.g., BTC, ETH, blockchain equities)' },
   { key: 'cusip', label: 'CUSIP', tooltip: '9-character identifier for North American securities; used for clearing and regulatory filings' },
   { key: 'digitalAssetIndicator', label: 'Digital Asset', tooltip: 'Whether the fund has meaningful exposure to digital assets (crypto or blockchain)', className: 'center' },
@@ -28,7 +27,7 @@ function getWeightClass(pct: number): 'high' | 'mid' | 'low' | 'none' {
   return 'low'
 }
 
-type SortKey = keyof CryptoEtfRow | 'btcHoldings' | 'actions'
+type SortKey = keyof CryptoEtfRow | 'actions'
 type SortDir = 'asc' | 'desc'
 
 interface EtfTableProps {
@@ -67,7 +66,7 @@ function applySearch(rows: CryptoEtfRow[], query: string): CryptoEtfRow[] {
 }
 
 export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
-  const { toggleWatchlist, toggleExportSelection, isInWatchlist, isInExportSelection, exportSelection, setRowsToExport } = useEtfContext()
+  const { toggleWatchlist, toggleExportSelection, isInWatchlist, isInExportSelection, exportSelection, setRowsToExport, watchlistLimitReached } = useEtfContext()
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey | null>('cryptoWeight')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -93,8 +92,8 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
   const sortedRows = useMemo(() => {
     if (!sortKey || sortKey === 'actions') return filteredRows
     return [...filteredRows].sort((a, b) => {
-      const av = sortKey === 'btcHoldings' ? a.btcHoldings : a[sortKey as keyof CryptoEtfRow]
-      const bv = sortKey === 'btcHoldings' ? b.btcHoldings : b[sortKey as keyof CryptoEtfRow]
+      const av = a[sortKey as keyof CryptoEtfRow]
+      const bv = b[sortKey as keyof CryptoEtfRow]
       let cmp: number
       if (typeof av === 'number' && typeof bv === 'number') {
         cmp = av - bv
@@ -226,13 +225,13 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
           <tbody>
             {rows.length === 0 && !loading ? (
               <tr>
-                <td colSpan={9} className="empty">
+                <td colSpan={8} className="empty">
                   No data. Add your FMP API key in <code>.env</code> to load live data.
                 </td>
               </tr>
             ) : sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="empty">
+                <td colSpan={8} className="empty">
                   No ETFs match your filters. Try adjusting or resetting filters.
                 </td>
               </tr>
@@ -243,6 +242,11 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
                     <Link to={`/etf/${row.ticker}`} className="row-link" title="View details">
                       {row.ticker}
                     </Link>
+                    {row.sponsoredBy && (
+                      <span className="etf-table-sponsored" title={`Sponsored by ${row.sponsoredBy}`}>
+                        {row.sponsoredBadge || '★'}
+                      </span>
+                    )}
                   </td>
                   <td className="name">
                     <Link to={`/etf/${row.ticker}`} className="row-link" title="View details">
@@ -251,15 +255,12 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
                   </td>
                   <td>{row.region}</td>
                   <td className="num">
-                    <span className={`weight-value weight-${getWeightClass(row.cryptoWeight)}`}>
-                      {row.cryptoWeight > 0 ? `${row.cryptoWeight}%` : '—'}
+                    <span className={`weight-value weight-${getWeightClass(row.cryptoWeight ?? 0)}`}>
+                      {row.cryptoWeight != null && row.cryptoWeight > 0 ? `${row.cryptoWeight}%` : '—'}
                     </span>
                   </td>
-                  <td className="num">
-                    {row.btcHoldings != null ? row.btcHoldings.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
-                  </td>
-                  <td className="crypto-exposure">{row.cryptoExposure}</td>
-                  <td className="cusip">{row.cusip}</td>
+                  <td className="crypto-exposure">{row.cryptoExposure ?? '—'}</td>
+                  <td className="cusip">{row.cusip ?? '—'}</td>
                   <td className="center">
                     {row.digitalAssetIndicator ? (
                       <span className="badge yes">Yes</span>
@@ -270,9 +271,15 @@ export function EtfTable({ rows, loading, error, onRefresh }: EtfTableProps) {
                   <td className="center actions-cell">
                     <button
                       type="button"
-                      className={`action-btn ${isInWatchlist(row.ticker) ? 'active' : ''}`}
+                      className={`action-btn ${isInWatchlist(row.ticker) ? 'active' : ''} ${watchlistLimitReached && !isInWatchlist(row.ticker) ? 'limit-reached' : ''}`}
                       onClick={(e) => { e.stopPropagation(); toggleWatchlist(row.ticker) }}
-                      title={isInWatchlist(row.ticker) ? 'Remove from watchlist' : 'Add to watchlist'}
+                      title={
+                        isInWatchlist(row.ticker)
+                          ? 'Remove from watchlist'
+                          : watchlistLimitReached
+                            ? 'Upgrade to Pro to add more'
+                            : 'Add to watchlist'
+                      }
                       aria-label={isInWatchlist(row.ticker) ? 'Remove from watchlist' : 'Add to watchlist'}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill={isInWatchlist(row.ticker) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden>

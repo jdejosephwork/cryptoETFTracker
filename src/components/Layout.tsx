@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import { Profile } from './Profile'
+import { useAuth } from '../context/AuthContext'
+import { isAdminEmail } from '../config/adminWhitelist'
 import type { CryptoEtfRow } from '../types/etf'
 import './Layout.css'
 
@@ -8,14 +10,24 @@ interface LayoutProps {
   rows: CryptoEtfRow[]
 }
 
-const NAV_ITEMS = [
+const ALL_NAV_ITEMS = [
   { to: '/', end: true, label: 'ETF Tracker', icon: '☰' },
   { to: '/watchlist', end: false, label: 'Watchlist', icon: '★' },
+  { to: '/admin', end: false, label: 'Admin', icon: '⚙' },
 ]
 
 const SIDEBAR_COLLAPSED_KEY = 'crypto-etf-sidebar-collapsed'
 
 export function Layout({ rows }: LayoutProps) {
+  const { user } = useAuth()
+  const navItems = useMemo(() => {
+    const isProd = import.meta.env.PROD
+    if (isProd && (!user || !isAdminEmail(user.email))) {
+      return ALL_NAV_ITEMS.filter((item) => item.to !== '/admin')
+    }
+    return ALL_NAV_ITEMS
+  }, [user])
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
@@ -83,7 +95,7 @@ export function Layout({ rows }: LayoutProps) {
             <span className="sidebar-logo-text">Crypto ETF</span>
           </NavLink>
           <ul className="sidebar-links">
-            {NAV_ITEMS.map(({ to, end, label, icon }) => (
+            {navItems.map(({ to, end, label, icon }) => (
               <li key={to}>
                 <NavLink to={to} end={end} className={({ isActive }) => (isActive ? 'active' : '')} title={label} onClick={closeMobileMenu}>
                   <span className="nav-icon">{icon}</span>
@@ -107,6 +119,11 @@ export function Layout({ rows }: LayoutProps) {
         <main className="layout-content">
           <Outlet />
         </main>
+        <footer className="layout-footer">
+          <p>
+            Broker links may be affiliate links. We may earn a commission when you open an account or make a purchase.
+          </p>
+        </footer>
       </div>
     </div>
   )

@@ -109,8 +109,7 @@ export function useCryptoEtfData() {
               cryptoWeight: 99.5,
               cryptoExposure: 'BTC',
               cusip,
-              digitalAssetIndicator: true,
-              btcHoldings: Math.round(btcEntry.holdings * 100) / 100
+              digitalAssetIndicator: true
             })
             if (!isStale()) setRows([...results].sort((a, b) => b.cryptoWeight - a.cryptoWeight))
           } catch {
@@ -122,8 +121,7 @@ export function useCryptoEtfData() {
               cryptoWeight: 99.5,
               cryptoExposure: 'BTC',
               cusip: knowledge?.cusip ?? CUSIP_OVERRIDES[symbol] ?? externalCusips[symbol] ?? '—',
-              digitalAssetIndicator: true,
-              btcHoldings: Math.round(btcEntry.holdings * 100) / 100
+              digitalAssetIndicator: true
             })
             if (!isStale()) setRows([...results].sort((a, b) => b.cryptoWeight - a.cryptoWeight))
           }
@@ -199,6 +197,12 @@ export function useCryptoEtfData() {
 
   useEffect(() => {
     load()
+  }, [load])
+
+  useEffect(() => {
+    const handler = () => load()
+    window.addEventListener('etf-data-refresh', handler)
+    return () => window.removeEventListener('etf-data-refresh', handler)
   }, [load])
 
   return { rows, loading, error, refresh: load }

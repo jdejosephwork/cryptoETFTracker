@@ -80,16 +80,13 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ ok: true, etfCount: count, lastSync: syncedAt })
 })
 
-async function ensureInitialSync(): Promise<void> {
+function runInitialSyncInBackground(): void {
   const cached = getCachedEtfs()
   if (cached.count === 0) {
-    console.log('No cached data; running initial sync...')
-    try {
-      const result = await runSync()
-      console.log(`Initial sync complete: ${result.count} ETFs`)
-    } catch (e) {
-      console.warn('Initial sync failed:', (e as Error).message)
-    }
+    console.log('No cached data; running initial sync in background...')
+    runSync()
+      .then((result) => console.log(`Initial sync complete: ${result.count} ETFs`))
+      .catch((e) => console.warn('Initial sync failed:', (e as Error).message))
   }
 }
 
@@ -104,11 +101,11 @@ cron.schedule('0 6 * * *', async () => {
   }
 })
 
-ensureInitialSync().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Crypto ETF Tracker API running on http://localhost:${PORT}`)
-    console.log('  GET  /api/etfs   - cached ETF data')
-    console.log('  POST /api/sync   - trigger sync (set SYNC_API_KEY to protect)')
-    console.log('  GET  /api/health - health check')
-  })
+// Start server immediately, then sync in background (avoids blocking Railway health checks)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Crypto ETF Tracker API running on port ${PORT}`)
+  console.log('  GET  /api/etfs   - cached ETF data')
+  console.log('  POST /api/sync   - trigger sync (set SYNC_API_KEY to protect)')
+  console.log('  GET  /api/health - health check')
+  runInitialSyncInBackground()
 })

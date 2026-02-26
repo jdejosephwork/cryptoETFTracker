@@ -1,6 +1,10 @@
 /** Fetch ETF detail (quote + holdings) from backend for modal */
 
-const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '')
+function getApiBase(): string {
+  // Always use same-origin to avoid CORS: Vercel serverless handles /api/etf/* when frontend is on Vercel
+  if (import.meta.env.DEV) return ''
+  return ''
+}
 
 export interface EtfQuote {
   symbol: string
@@ -36,7 +40,8 @@ export interface EtfDetailResponse {
 }
 
 export async function fetchEtfDetail(symbol: string): Promise<EtfDetailResponse> {
-  const url = `${API_BASE}/api/etf/${encodeURIComponent(symbol)}`
+  const base = getApiBase()
+  const url = `${base}/api/etf/${encodeURIComponent(symbol)}`
   let res: Response
   try {
     res = await fetch(url)

@@ -1,17 +1,16 @@
 /**
- * Diagnostic endpoint - check API health and config.
+ * Diagnostic endpoint - check deployment config.
  * GET /api/diagnostic
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
-  const hasFmpKey = !!(process.env.FMP_API_KEY || process.env.VITE_FMP_API_KEY)
   res.setHeader('Cache-Control', 'no-store')
   return res.status(200).json({
     ok: true,
     timestamp: new Date().toISOString(),
-    etfApi: 'Vercel serverless',
-    fmpConfigured: hasFmpKey,
+    backend: 'Railway (proxied via vercel.json rewrites)',
+    endpoints: ['/api/etfs', '/api/etf/:symbol', '/api/sync', '/api/health'],
     env: {
       nodeEnv: process.env.NODE_ENV,
       vercel: !!process.env.VERCEL,

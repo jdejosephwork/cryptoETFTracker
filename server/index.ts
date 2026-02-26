@@ -14,6 +14,23 @@ import { getEtfQuote, getEtfHoldings } from './fmp'
 import type { CryptoEtfRow } from '../src/types/etf'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// In-memory cache for ETF detail (quote + holdings) to stay within FMP Starter 300 calls/min
+const ETF_DETAIL_CACHE_TTL_MS = 10 * 60 * 1000 // 10 min
+const etfDetailCache = new Map<
+  string,
+  { data: { symbol: string; quote: unknown; holdings: unknown[] }; expiry: number }
+>()
+
+function getCachedEtfDetail(symbol: string): { symbol: string; quote: unknown; holdings: unknown[] } | null {
+  const entry = etfDetailCache.get(symbol)
+  if (!entry || Date.now() > entry.expiry) return null
+  return entry.data
+}
+
+function setCachedEtfDetail(symbol: string, data: { symbol: string; quote: unknown; holdings: unknown[] }): void {
+  etfDetailCache.set(symbol, { data, expiry: Date.now() + ETF_DETAIL_CACHE_TTL_MS })
+}
 const DATA_PATH = join(__dirname, 'data', 'etfs.json')
 const PORT = Number(process.env.PORT) || 3001
 
@@ -44,16 +61,20 @@ app.get('/api/etfs', (_req: Request, res: Response) => {
   res.json(data)
 })
 
-// GET /api/etf/:symbol - ETF detail (quote + holdings) for modal
+// GET /api/etf/:symbol - ETF detail (quote + holdings) for modal; 10min cache to respect FMP rate limits
 app.get('/api/etf/:symbol', async (req: Request, res: Response) => {
   const symbol = (req.params.symbol || '').toUpperCase()
   if (!symbol) return res.status(400).json({ error: 'Symbol required' })
+  const cached = getCachedEtfDetail(symbol)
+  if (cached) return res.json(cached)
   try {
     const [quote, holdings] = await Promise.all([
       getEtfQuote(symbol),
       getEtfHoldings(symbol)
     ])
-    res.json({ symbol, quote, holdings: holdings || [] })
+    const data = { symbol, quote, holdings: holdings || [] }
+    setCachedEtfDetail(symbol, data)
+    res.json(data)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
   }
@@ -105,6 +126,7 @@ cron.schedule('0 6 * * *', async () => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Crypto ETF Tracker API running on port ${PORT}`)
   console.log('  GET  /api/etfs   - cached ETF data')
+  console.log('  GET  /api/etf/:symbol - ETF detail (10min cache)')
   console.log('  POST /api/sync   - trigger sync (set SYNC_API_KEY to protect)')
   console.log('  GET  /api/health - health check')
   runInitialSyncInBackground()

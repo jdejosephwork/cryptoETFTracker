@@ -49,16 +49,17 @@ Vite proxies `/api` to `http://localhost:3001`. The frontend will use the backen
 3. **Serve** static files from `dist/` and run the Express server; route `/api/*` to Express, everything else to `index.html`.
 4. **Env vars** on the host: `FMP_API_KEY`, optionally `SYNC_API_KEY`, `CUSIP_DATA_URL`, `PORT`.
 
-### Option B: Separate frontend and backend
+### Option B: Separate frontend and backend (Vercel + Railway)
 
-1. **Backend** (Railway, Render, Fly.io, etc.):
-   - Deploy `server/` (or run from repo root with `node server/index.js`).
+1. **Backend** (Railway):
+   - Deploy `server/` (or run from repo root).
    - Set `FMP_API_KEY`, `CUSIP_DATA_URL`, `SYNC_API_KEY`, `PORT`.
-   - Enable CORS (already configured for `*`; restrict in production if needed).
 
-2. **Frontend** (Vercel, Netlify, etc.):
-   - Build with `VITE_API_URL=https://your-backend.railway.app` (or your backend URL).
-   - Deploy the `dist/` output.
+2. **Frontend** (Vercel):
+   - Deploy the repo. **Do not set** `VITE_API_URL` – `vercel.json` rewrites proxy `/api/*` to Railway (same-origin, no CORS).
+   - All API calls (`/api/etfs`, `/api/etf/:symbol`, etc.) go through Vercel → Railway.
+
+For other hosts (Netlify, etc.), set `VITE_API_URL` to your backend URL and configure equivalent rewrites/proxies.
 
 ### Cron / External trigger for sync
 
@@ -86,5 +87,6 @@ Set `SYNC_API_KEY` on the backend; omit it to allow unauthenticated sync (only f
 | Method | Path         | Description                    |
 |--------|--------------|--------------------------------|
 | GET    | /api/etfs    | Cached ETF data (read-only)   |
+| GET    | /api/etf/:symbol | ETF detail (quote + holdings) |
 | POST   | /api/sync    | Trigger data sync             |
 | GET    | /api/health  | Health check + last sync time  |

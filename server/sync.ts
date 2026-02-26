@@ -22,8 +22,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, 'data')
 const OUTPUT_PATH = join(DATA_DIR, 'etfs.json')
 
-const REQUEST_DELAY_MS = 300
-const MAX_ETFS = 25
+// FMP Starter: 300 calls/min. Each ETF = up to 4 parallel calls → ~800ms between ETFs to stay under limit
+const REQUEST_DELAY_MS = 800
+const MAX_ETFS = 50
 
 function inferCryptoExposure(name: string): string {
   const n = (name || '').toLowerCase()

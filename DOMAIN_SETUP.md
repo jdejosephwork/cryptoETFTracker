@@ -62,14 +62,14 @@ You'll get a URL like `cryptoetftracker.vercel.app`.
 2. Go to **DNS Settings** / **Advanced Settings**.
 3. Add records:
 
-**For main site (Vercel):**
+**For main site (Vercel):** Use the exact records shown in your Vercel Domains dashboard:
 
 | Type | Host | Value |
 |------|------|-------|
-| A | @ | 76.76.21.21 |
-| CNAME | www | cname.vercel-dns.com |
+| A | @ | 216.198.79.1 |
+| CNAME | www | 699c6a30dcd4efe8.vercel-dns-017.com |
 
-*(Or use the exact records Vercel shows—they may differ.)*
+> Note: Vercel has expanded their IP ranges. Older values (76.76.21.21, cname.vercel-dns.com) still work but the new ones above are recommended.
 
 **For auth subdomain (add after Step 4):**
 
@@ -81,17 +81,35 @@ You'll get a URL like `cryptoetftracker.vercel.app`.
 
 ---
 
-## Step 4: Supabase Custom Domain
+## Step 4: Supabase Custom Domain (auth.cryptoetftracker.net)
 
-1. Supabase Dashboard → **Project Settings** → **Custom Domains**.
-2. Click **Add custom domain**.
+> **Note:** Custom domains are a paid add-on. In Supabase → **Settings** → **Add-ons**, enable **Custom Domain** if needed.
+
+### 4a. Add domain in Supabase
+
+1. Supabase Dashboard → **Project Settings** → **General** → **Custom Domains** (or **Settings** → **Add-ons** → Custom Domain).
+2. Click **Add custom domain** / **Configure custom domain**.
 3. Enter: `auth.cryptoetftracker.net`
-4. Supabase shows a **CNAME target** (e.g. `yygtxhxklqdakpwdkfkj.supabase.co`).
-5. In Squarespace DNS, add:
-   - **Type:** CNAME  
-   - **Host:** auth  
-   - **Value:** the Supabase CNAME target  
-6. Wait for Supabase to verify (can take a few minutes).
+4. Supabase will show:
+   - **CNAME target:** `yygtxhxklqdakpwdkfkj.supabase.co`
+   - **TXT record** (for verification): `_acme-challenge.auth` → a value like `ca3-xxxxx`
+
+### 4b. Add DNS records in Squarespace
+
+In **Domains** → **cryptoetftracker.net** → **DNS Settings** → **Custom Records**:
+
+| Type | Host | Value |
+|------|------|-------|
+| CNAME | auth | yygtxhxklqdakpwdkfkj.supabase.co |
+| TXT | _acme-challenge.auth | (copy exact value from Supabase) |
+
+> Some DNS providers auto-append the domain. If `auth` creates `auth.cryptoetftracker.net` correctly, use `auth`. For the TXT host, Supabase may show `_acme-challenge.auth.cryptoetftracker.net` — in Squarespace you might enter just `_acme-challenge.auth`.
+
+### 4c. Verify and activate
+
+1. Save DNS. Wait 5–15 minutes for propagation.
+2. In Supabase, click **Verify** / **Reverify**. SSL and activation can take up to ~30 minutes.
+3. After activation, Supabase will serve Auth from `https://auth.cryptoetftracker.net`.
 
 ---
 

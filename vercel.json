@@ -1,20 +1,9 @@
 {
   "rewrites": [
-    {
-      "source": "/api/etfs",
-      "destination": "https://cryptoetftracker-production.up.railway.app/api/etfs"
-    },
-    {
-      "source": "/api/sync",
-      "destination": "https://cryptoetftracker-production.up.railway.app/api/sync"
-    },
-    {
-      "source": "/api/health",
-      "destination": "https://cryptoetftracker-production.up.railway.app/api/health"
-    },
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/etfs", "destination": "https://cryptoetftracker-production.up.railway.app/api/etfs" },
+    { "source": "/api/sync", "destination": "https://cryptoetftracker-production.up.railway.app/api/sync" },
+    { "source": "/api/health", "destination": "https://cryptoetftracker-production.up.railway.app/api/health" },
+    { "source": "/api/etf/:symbol", "destination": "https://cryptoetftracker-production.up.railway.app/api/etf/:symbol" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

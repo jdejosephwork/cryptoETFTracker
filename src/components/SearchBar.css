@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  max-width: 320px;
+  max-width: 380px;
 }
 
 .search-icon {
@@ -10,6 +10,13 @@
   left: 0.875rem;
   color: rgba(255, 255, 255, 0.4);
   pointer-events: none;
+}
+
+/* Hide native browser clear button on search inputs to avoid duplicate X */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .search-input {
@@ -53,4 +60,57 @@
 .search-clear:hover {
   color: rgba(255, 255, 255, 0.9);
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* Suggestions dropdown (Google-like) */
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 0.25rem 0 0;
+  padding: 0.5rem 0;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.search-suggestion-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.search-suggestion-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.suggestion-ticker {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 4rem;
+}
+
+.suggestion-name {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

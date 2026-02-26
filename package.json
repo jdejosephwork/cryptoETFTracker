@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "cd server && npm start",
+    "start": "cd server && npm start",
     "build": "tsc -b && vite build",
     "verify": "npm run build",
     "lint": "eslint .",

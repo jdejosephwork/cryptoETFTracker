@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/etfs", "destination": "https://cryptoetftracker-production.up.railway.app/api/etfs" },
+    { "source": "/api/etf/:path*", "destination": "https://cryptoetftracker-production.up.railway.app/api/etf/:path*" },
     { "source": "/api/sync", "destination": "https://cryptoetftracker-production.up.railway.app/api/sync" },
     { "source": "/api/health", "destination": "https://cryptoetftracker-production.up.railway.app/api/health" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
